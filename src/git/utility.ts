@@ -1,0 +1,56 @@
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+// exec with default utf-8 encoding always return stdout as string
+// see: https://nodejs.org/api/child_process.html#child_process_child_process_exec_command_options_callback
+
+
+function rstrip(message: string): string {
+    return message.replace(/\s+$/g, '');
+}
+
+function fromGitBoolean(data: string): boolean {
+    // see: https://git-scm.com/docs/git-config#Documentation/git-config.txt-boolean
+    // empty string is hard to handle, ignore that case now
+
+    data = data.toLowerCase();
+    let result: boolean = false;
+    switch (data) {
+    case 'true':
+    case 'yes':
+    case 'on':
+    case '1':
+        result = true;
+        break;
+    }
+    return result;
+}
+
+export async function getSigningKey(project: string): Promise<string> {
+    try {
+        // see: https://git-scm.com/docs/git-config#Documentation/git-config.txt-usersigningKey
+        const { stdout } = await exec('git config --local --get user.signingKey', {
+            cwd: project
+        });
+    
+        let output: string = stdout;
+        output = rstrip(output);
+        return output;
+    } catch (error) {
+        throw new Error('Fail to get signing key');
+    }
+}
+
+export async function isSigningActivated(project: string): Promise<boolean> {
+    try {
+        // see: https://git-scm.com/docs/git-config#Documentation/git-config.txt-commitgpgSign
+        const { stdout } = await exec('git config --local --get commit.gpgSign', {
+            cwd: project
+        });
+    
+        let output: string = stdout;
+        output = rstrip(output);
+        return fromGitBoolean(output);
+    } catch (error) {
+        throw new Error('Fail to test whether signing is activated');
+    }
+}
