@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 
 import * as git from './indicator/git';
+import * as gpg from './indicator/gpg';
 
 let myStatusBarItem: vscode.StatusBarItem;
 
@@ -49,7 +50,9 @@ async function getStatusString(): Promise<string> {
     }
 
     const keyId = await git.getSigningKey(folderPath);
-    const status = `GPG Key: ${keyId}`;
+    const isUnlocked = await gpg.isKeyIdUnlocked(keyId);
+    const lockedText = isUnlocked ? 'Unlocked' : 'Locked';
+    const status = `GPG: ${keyId} (${lockedText})`;
     return status;
 }
 
