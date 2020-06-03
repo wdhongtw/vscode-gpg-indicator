@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-import * as gitutil from './git/utility';
+import * as git from './indicator/git';
 
 let myStatusBarItem: vscode.StatusBarItem;
 
@@ -43,12 +43,12 @@ async function getStatusString(): Promise<string> {
     }
     // TODO: Should support multi-folder workspace
     const folderPath = vscode.workspace.workspaceFolders[0].uri.path;
-    const shouldParseKey = await gitutil.isSigningActivated(folderPath);
+    const shouldParseKey = await git.isSigningActivated(folderPath);
     if (!shouldParseKey) {
         return '';
     }
 
-    const keyId = await gitutil.getSigningKey(folderPath);
+    const keyId = await git.getSigningKey(folderPath);
     const status = `GPG Key: ${keyId}`;
     return status;
 }
