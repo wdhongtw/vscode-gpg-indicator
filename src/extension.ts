@@ -51,8 +51,9 @@ async function getStatusString(): Promise<string> {
 
     const keyId = await git.getSigningKey(folderPath);
     const isUnlocked = await gpg.isKeyIdUnlocked(keyId);
-    const lockedText = isUnlocked ? 'Unlocked' : 'Locked';
-    const status = `GPG: ${keyId} (${lockedText})`;
+    // Product icon, see: https://code.visualstudio.com/api/references/icons-in-labels
+    const lockIcon = isUnlocked ? 'unlock' : 'lock';
+    const status = `$(${lockIcon}) ${keyId}`;
     return status;
 }
 
