@@ -10,16 +10,11 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:gpg-indicator.helloWorld",
 		"workspaceContains:/.git"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
-			{
-				"command": "gpg-indicator.helloWorld",
-				"title": "Hello World"
-			}
 		]
 	},
 	"scripts": {
