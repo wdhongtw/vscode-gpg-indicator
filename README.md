@@ -1,65 +1,34 @@
-# gpg-indicator README
+# GPG Key Status Indicator for VS Code
 
-This is the README for your extension "gpg-indicator". After writing up a brief description, we recommend including the following sections.
+Show the status of the GPG signing key for your project!
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+This extension will show the status of GPG signing key in status bar if
 
-For example if there is an image subfolder under your extension project workspace:
+- The project folder has set `commit.gpgSign` as `true` for git, and
+- The project folder has set `user.signingKey` with GPG key ID for git
 
-\!\[feature X\]\(images/feature-x.png\)
+If the above condition are satisfied, there will be an indicator for your current
+signing key, together with a cute icon to tell whether the key is unlocked or not.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+**Note**: currently the extension only support first folder in workspace.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Linux environment (It's not been tested on other platform)
+- GPG tool chain (`gpg`, `gpg-agent`, `gpg-connect-agent`) above 2.1
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+Currently there is no setting available.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+Multi-folder workspace is not supported yet.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.1.0
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release. User can check the status of project signing key.
