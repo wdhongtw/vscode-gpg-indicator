@@ -2,6 +2,8 @@
 
 Show the status of the GPG signing key for your project!
 
+![stats bar sample](./images/status-bar.png)
+
 ## Features
 
 This extension will show the status of GPG signing key in status bar if
