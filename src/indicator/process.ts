@@ -1,6 +1,12 @@
 
 import * as child from 'child_process';
 
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+        setTimeout(resolve, ms);
+    });
+}
+
 export function textSpawn(command: string, args: Array<string>, input: string): Promise<string> {
     return new Promise((resolve, reject) => {
         let proc = child.spawn(command, args);

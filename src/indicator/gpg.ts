@@ -9,7 +9,7 @@ interface GpgKeyInfo {
 
 /**
  * Parse lots GPG key information from gpg command
- * 
+ *
  * @param {string} rawText output string from gpg --fingerprint --fingerprint --with-keygrip
  */
 function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
