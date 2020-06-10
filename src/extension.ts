@@ -31,8 +31,9 @@ export function activate(context: vscode.ExtensionContext) {
     // TODO: Monitor change of activate folder
 
     keyStatusManager.registerUpdateFunction((event) => {
+        const shortId = event.keyId.substr(event.keyId.length - 16);
         const lockIcon = event.isLocked ? 'lock' : 'unlock';
-        const status = `$(${lockIcon}) ${event.keyId}`;
+        const status = `$(${lockIcon}) ${shortId}`;
         keyStatusItem.text = status;
         keyStatusItem.show();
     });
@@ -43,7 +44,7 @@ export function deactivate() {}
 class KeyStatusManager {
     #activateFolder: string | undefined;
     #lastEvent: KeyStatusEvent | undefined;
-    #keyOfFolders: Map<string, string> = new Map();
+    #keyOfFolders: Map<string, gpg.GpgKeyInfo> = new Map();
     #disposed: boolean = false;
     #updateFunctions: ((event: KeyStatusEvent) => void)[] = [];
 
@@ -53,10 +54,9 @@ class KeyStatusManager {
 
     private async syncLoop(): Promise<void> {
         while(!this.#disposed) {
-            if (!this.#activateFolder) {
-                continue;
+            if (this.#activateFolder) {
+                await this.syncStatus();
             }
-            await this.syncStatus();
             await process.sleep(syncStatusInterval * 1000);
         }
         return;
@@ -67,16 +67,16 @@ class KeyStatusManager {
             return;
         }
 
-        const keyId = this.#keyOfFolders.get(this.#activateFolder);
-        if (keyId === undefined) {
+        const keyInfo = this.#keyOfFolders.get(this.#activateFolder);
+        if (keyInfo === undefined) {
             return;
         }
 
         let newEvent: KeyStatusEvent | undefined;
         try {
-            const isUnlocked = await gpg.isKeyIdUnlocked(keyId);
+            const isUnlocked = await gpg.isKeyUnlocked(keyInfo.keygrip);
             newEvent = {
-                keyId: keyId,
+                keyId: keyInfo.fingerprint,
                 isLocked: !isUnlocked,
             };
         } catch (err) {
@@ -110,7 +110,8 @@ class KeyStatusManager {
                 return;
             }
             const keyId = await git.getSigningKey(folder);
-            this.#keyOfFolders.set(folder, keyId);
+            const keyInfo = await gpg.getKeyInfo(keyId);
+            this.#keyOfFolders.set(folder, keyInfo);
         } catch (err) {
             console.log(`Can not found key for folder: ${folder}`);
         }

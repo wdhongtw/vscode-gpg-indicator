@@ -1,6 +1,6 @@
 import * as process from './process';
 
-interface GpgKeyInfo {
+export interface GpgKeyInfo {
     type: string;
     capabilities: string;
     fingerprint: string;
@@ -33,7 +33,7 @@ function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
 }
 
 
-async function isKeyUnlocked(keygrip: string): Promise<boolean> {
+export async function isKeyUnlocked(keygrip: string): Promise<boolean> {
     let outputs = await process.textSpawn('gpg-connect-agent', [], `KEYINFO ${keygrip}`);
 
     let lines = outputs.split("\n");
@@ -61,6 +61,21 @@ export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
         // GPG signing key is usually given as shorter ID
         if (info.fingerprint.includes(keyId)) {
             return isKeyUnlocked(info.keygrip);
+        }
+    }
+
+    throw new Error(`Can not find key with ID: ${keyId}`);
+}
+
+export async function getKeyInfo(keyId: string): Promise<GpgKeyInfo> {
+    // --fingerprint flag is give twice to get fingerprint of subkey
+    let keyInfoRaw: string = await process.textSpawn('gpg', ['--fingerprint', '--fingerprint', '--with-keygrip'], '');
+    let infos = parseGpgKey(keyInfoRaw);
+
+    for (let info of infos) {
+        // GPG signing key is usually given as shorter ID
+        if (info.fingerprint.includes(keyId)) {
+            return info;
         }
     }
 
