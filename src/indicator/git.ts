@@ -31,7 +31,7 @@ export async function getSigningKey(project: string): Promise<string> {
         const { stdout } = await exec('git config --local --get user.signingKey', {
             cwd: project
         });
-    
+
         let output: string = stdout;
         output = rstrip(output);
         return output;
@@ -46,7 +46,7 @@ export async function isSigningActivated(project: string): Promise<boolean> {
         const { stdout } = await exec('git config --local --get commit.gpgSign', {
             cwd: project
         });
-    
+
         let output: string = stdout;
         output = rstrip(output);
         return fromGitBoolean(output);
