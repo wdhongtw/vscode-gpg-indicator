@@ -1,11 +1,10 @@
-.vscode/**
-.vscode-test/**
-out/test/**
-src/**
-.gitignore
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/.eslintrc.json
-**/*.map
-**/*.ts
-images/*
+# Ignore all files be default
+# see: https://code.visualstudio.com/api/working-with-extensions/publishing-extension#.vscodeignore
+**
+
+# Current output folder of TypeScript is out
+!out/extension.js
+!out/indicator/**/*.js
+!package.json
+!README.md
+!CHANGELOG.md
