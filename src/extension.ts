@@ -23,6 +23,25 @@ export function activate(context: vscode.ExtensionContext) {
     const keyStatusManager = new KeyStatusManager();
     context.subscriptions.push(keyStatusManager);
 
+    const commandId = 'gpgIndicator.unlockCurrentKey';
+    const command = vscode.commands.registerCommand(commandId, async () => {
+        const passphrase = await vscode.window.showInputBox({
+            prompt: 'Input the passphrase for the signing key',
+            password: true,
+        });
+        if (passphrase === undefined) { return; }
+        try {
+            await keyStatusManager.unlockCurrentKey(passphrase);
+        } catch (err) {
+            if (err instanceof Error) {
+                vscode.window.showInformationMessage(`Failed to unlock: ${err.message}`);
+            }
+        }
+    });
+    context.subscriptions.push(command);
+    keyStatusItem.tooltip = 'Unlock this key';
+    keyStatusItem.command = commandId;
+
     if (vscode.workspace.workspaceFolders !== undefined) {
         const folders = toFolders(vscode.workspace.workspaceFolders);
         keyStatusManager.updateFolders(folders);
@@ -53,6 +72,7 @@ class KeyStatusManager {
     }
 
     private async syncLoop(): Promise<void> {
+        await process.sleep(1 * 1000);
         while(!this.#disposed) {
             if (this.#activateFolder) {
                 await this.syncStatus();
@@ -128,7 +148,18 @@ class KeyStatusManager {
     }
 
     // Lock or unlock current key
-    toggleCurrentKey(): void {
+    async unlockCurrentKey(passphrase: string): Promise<void> {
+        if (this.#activateFolder === undefined) {
+            throw new Error('No active folder');
+        }
+
+        const theKey = this.#keyOfFolders.get(this.#activateFolder);
+        if (theKey === undefined) {
+            throw new Error('No key for current folder');
+        }
+
+        await gpg.unlockByKeyId(theKey.fingerprint, passphrase);
+        await this.syncStatus();
     }
 
     // Stop sync key status loop

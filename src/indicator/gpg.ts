@@ -1,4 +1,5 @@
 import * as process from './process';
+import * as tempfile from './tempfile';
 
 export interface GpgKeyInfo {
     type: string;
@@ -81,3 +82,32 @@ export async function getKeyInfo(keyId: string): Promise<GpgKeyInfo> {
 
     throw new Error(`Can not find key with ID: ${keyId}`);
 }
+
+export async function unlockByKeyId(keyId: string, passphrase: string): Promise<void> {
+    let document: tempfile.TempTextFile | undefined;
+    let signature: tempfile.TempTextFile | undefined;
+
+    try {
+        document = new tempfile.TempTextFile();
+        signature = new tempfile.TempTextFile();
+        await document.create();
+        await signature.create();
+
+        const expectCommand =
+            `spawn gpg --clear-sign --pinentry-mode loopback --local-user ${keyId} ` +
+            `--output ${signature.filePath} ${document.filePath}\n` +
+            `expect "*Overwrite? (y/N)*"\n` +
+            `send "y\\r"\n` +
+            `expect "*Enter passphrase:*"\n` +
+            `send "${passphrase}\\r"\n` +
+            `wait\n`;
+
+        await process.textSpawn('expect', [], expectCommand);
+    } finally {
+        signature?.dispose();
+        document?.dispose();
+    }
+    // gpg can signed the document even if the document is empty
+
+}
+
