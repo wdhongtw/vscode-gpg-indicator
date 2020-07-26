@@ -1,6 +1,23 @@
 
 import * as child from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
 
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+        setTimeout(resolve, ms);
+    });
+}
+
+/**
+ * Run specified command, with given input and return output(promise) in string
+ *
+ * @param command executable name
+ * @param args options and arguments, executable name is not included
+ * @param input stdin
+ * @returns The promise which resolve the stdout. Rejects if fail to run command or command returns not zero value.
+ */
 export function textSpawn(command: string, args: Array<string>, input: string): Promise<string> {
     return new Promise((resolve, reject) => {
         let proc = child.spawn(command, args);
@@ -25,7 +42,7 @@ export function textSpawn(command: string, args: Array<string>, input: string): 
         proc.on('error', reject);
         proc.on('close', (code) => {
             if (code !== 0) {
-                reject(new Error(`Command execution failed, return code: ${code}, stderr: ${error_message}`));
+                reject(new Error(`Command ${command} failed, return code: ${code}, stderr: ${error_message}`));
             }
             resolve(output);
         });

@@ -2,7 +2,7 @@
 	"name": "gpg-indicator",
 	"displayName": "GPG Indicator",
 	"description": "Status indicator for GPG signing key",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"publisher": "wdhongtw",
 	"engines": {
 		"vscode": "^1.45.0"
@@ -15,8 +15,7 @@
 	],
 	"main": "./out/extension.js",
 	"contributes": {
-		"commands": [
-		]
+		"commands": []
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",

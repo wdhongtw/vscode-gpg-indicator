@@ -1,6 +1,7 @@
 import * as process from './process';
+import * as tempfile from './tempfile';
 
-interface GpgKeyInfo {
+export interface GpgKeyInfo {
     type: string;
     capabilities: string;
     fingerprint: string;
@@ -9,7 +10,7 @@ interface GpgKeyInfo {
 
 /**
  * Parse lots GPG key information from gpg command
- * 
+ *
  * @param {string} rawText output string from gpg --fingerprint --fingerprint --with-keygrip
  */
 function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
@@ -33,7 +34,7 @@ function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
 }
 
 
-async function isKeyUnlocked(keygrip: string): Promise<boolean> {
+export async function isKeyUnlocked(keygrip: string): Promise<boolean> {
     let outputs = await process.textSpawn('gpg-connect-agent', [], `KEYINFO ${keygrip}`);
 
     let lines = outputs.split("\n");
@@ -66,3 +67,47 @@ export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
 
     throw new Error(`Can not find key with ID: ${keyId}`);
 }
+
+export async function getKeyInfo(keyId: string): Promise<GpgKeyInfo> {
+    // --fingerprint flag is give twice to get fingerprint of subkey
+    let keyInfoRaw: string = await process.textSpawn('gpg', ['--fingerprint', '--fingerprint', '--with-keygrip'], '');
+    let infos = parseGpgKey(keyInfoRaw);
+
+    for (let info of infos) {
+        // GPG signing key is usually given as shorter ID
+        if (info.fingerprint.includes(keyId)) {
+            return info;
+        }
+    }
+
+    throw new Error(`Can not find key with ID: ${keyId}`);
+}
+
+export async function unlockByKeyId(keyId: string, passphrase: string): Promise<void> {
+    let document: tempfile.TempTextFile | undefined;
+    let signature: tempfile.TempTextFile | undefined;
+
+    try {
+        document = new tempfile.TempTextFile();
+        signature = new tempfile.TempTextFile();
+        await document.create();
+        await signature.create();
+
+        const expectCommand =
+            `spawn gpg --clear-sign --pinentry-mode loopback --local-user ${keyId} ` +
+            `--output ${signature.filePath} ${document.filePath}\n` +
+            `expect "*Overwrite? (y/N)*"\n` +
+            `send "y\\r"\n` +
+            `expect "*Enter passphrase:*"\n` +
+            `send "${passphrase}\\r"\n` +
+            `wait\n`;
+
+        await process.textSpawn('expect', [], expectCommand);
+    } finally {
+        signature?.dispose();
+        document?.dispose();
+    }
+    // gpg can signed the document even if the document is empty
+
+}
+
