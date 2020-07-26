@@ -4,6 +4,11 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [Unreleased]
+## [0.2.0] - 2020-07-26
+### Added
+- Unlock key by clicking the status bar element
 
-- Initial release
+
+## [0.1.0] - 2020-06-04
+### Added
+- Show whether the signing key is locked or not

@@ -2,6 +2,8 @@
 
 Show the status of the GPG signing key for your project!
 
+You can also also unlock the key by clicking the status bar element. :D
+
 ![stats bar sample](./images/status-bar.png)
 
 ## Features
@@ -13,8 +15,6 @@ This extension will show the status of GPG signing key in status bar if
 
 If the above condition are satisfied, there will be an indicator for your current
 signing key, together with a cute icon to tell whether the key is unlocked or not.
-
-**Note**: currently the extension only support first folder in workspace.
 
 ## Requirements
 
@@ -30,6 +30,10 @@ Currently there is no setting available.
 Multi-folder workspace is not supported yet.
 
 ## Release Notes
+
+### 0.2.0
+
+User can unlock the key by clicking the status bar element.
 
 ### 0.1.0
 
