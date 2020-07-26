@@ -20,6 +20,11 @@ signing key, together with a cute icon to tell whether the key is unlocked or no
 
 - Linux environment (It's not been tested on other platform)
 - GPG tool chain (`gpg`, `gpg-agent`, `gpg-connect-agent`) above 2.1
+- `expect` tool by Don Libes: [Links](https://core.tcl-lang.org/expect/index)
+  - You can get this tool on most Linux distribution.
+
+Current implementation require a pty between this extension and GPG tools to send passphrase,
+so we use `expect` to handle this. I wish I can remove this dependency in the future.
 
 ## Extension Settings
 
