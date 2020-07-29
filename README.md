@@ -1,4 +1,4 @@
-# GPG Key Status Indicator for VS Code
+# GPG Key Status Indicator and Unlocker for VS Code
 
 Show the status of the GPG signing key for your project!
 
@@ -15,6 +15,8 @@ This extension will show the status of GPG signing key in status bar if
 
 If the above condition are satisfied, there will be an indicator for your current
 signing key, together with a cute icon to tell whether the key is unlocked or not.
+
+When you click the indicator, you will be prompted for passphrase to unlock the key.
 
 ## Requirements
 
@@ -35,6 +37,10 @@ Currently there is no setting available.
 Multi-folder workspace is not supported yet.
 
 ## Release Notes
+
+### 0.3.0
+
+Design and add icon for this package.
 
 ### 0.2.0
 
