@@ -4,6 +4,13 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.1] - 2020-11-20
+### Added
+- Add information message for unlock action
+
+### Fixed
+- Fix security issue
+
 ## [0.3.0] - 2020-07-30
 ### Added
 - Design icon for this package

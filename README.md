@@ -38,6 +38,10 @@ Multi-folder workspace is not supported yet.
 
 ## Release Notes
 
+### 0.3.1
+
+Add message for unlock action and fix security issue.
+
 ### 0.3.0
 
 Design and add icon for this package.

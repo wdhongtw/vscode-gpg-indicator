@@ -2,7 +2,7 @@
 	"name": "gpg-indicator",
 	"displayName": "GPG Indicator",
 	"description": "Status indicator and unlocker for GPG signing key",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"publisher": "wdhongtw",
 	"engines": {
 		"vscode": "^1.45.0"
