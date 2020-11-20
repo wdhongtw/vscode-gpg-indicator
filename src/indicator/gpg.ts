@@ -100,9 +100,16 @@ export async function unlockByKeyId(keyId: string, passphrase: string): Promise<
             `send "y\\r"\n` +
             `expect "*Enter passphrase:*"\n` +
             `send "${passphrase}\\r"\n` +
-            `wait\n`;
+            `set result [lindex [wait] 3]\n` +
+            `exit $result\n`;
 
         await process.textSpawn('expect', [], expectCommand);
+    } catch(err) {
+        if (err instanceof process.ProcessError) {
+            throw new Error('the given passphrase may be wrong');
+        } else {
+            throw err;
+        }
     } finally {
         signature?.dispose();
         document?.dispose();

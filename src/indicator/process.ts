@@ -1,7 +1,5 @@
 
 import * as child from 'child_process';
-import * as fs from 'fs';
-import * as os from 'os';
 
 
 export function sleep(ms: number): Promise<void> {
@@ -10,12 +8,20 @@ export function sleep(ms: number): Promise<void> {
     });
 }
 
+export class ProcessError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
 /**
  * Run specified command, with given input and return output(promise) in string
  *
  * @param command executable name
  * @param args options and arguments, executable name is not included
  * @param input stdin
+ * @throws {ProcessError} if the process returns non-zero
+ * @throws Other errors may be throws by underline Node runtime
  * @returns The promise which resolve the stdout. Rejects if fail to run command or command returns not zero value.
  */
 export function textSpawn(command: string, args: Array<string>, input: string): Promise<string> {
@@ -42,7 +48,7 @@ export function textSpawn(command: string, args: Array<string>, input: string): 
         proc.on('error', reject);
         proc.on('close', (code) => {
             if (code !== 0) {
-                reject(new Error(`Command ${command} failed, return code: ${code}, stderr: ${error_message}`));
+                reject(new ProcessError(`Command ${command} failed, return code: ${code}, stderr: ${error_message}`));
             }
             resolve(output);
         });
