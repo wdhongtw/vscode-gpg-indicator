@@ -15,12 +15,12 @@ function fromGitBoolean(data: string): boolean {
     data = data.toLowerCase();
     let result: boolean = false;
     switch (data) {
-        case 'true':
-        case 'yes':
-        case 'on':
-        case '1':
-            result = true;
-            break;
+    case 'true':
+    case 'yes':
+    case 'on':
+    case '1':
+        result = true;
+        break;
     }
     return result;
 }
