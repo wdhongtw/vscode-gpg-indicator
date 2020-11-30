@@ -15,12 +15,12 @@ function fromGitBoolean(data: string): boolean {
     data = data.toLowerCase();
     let result: boolean = false;
     switch (data) {
-    case 'true':
-    case 'yes':
-    case 'on':
-    case '1':
-        result = true;
-        break;
+        case 'true':
+        case 'yes':
+        case 'on':
+        case '1':
+            result = true;
+            break;
     }
     return result;
 }
@@ -28,7 +28,7 @@ function fromGitBoolean(data: string): boolean {
 export async function getSigningKey(project: string): Promise<string> {
     try {
         // see: https://git-scm.com/docs/git-config#Documentation/git-config.txt-usersigningKey
-        const { stdout } = await exec('git config --local --get user.signingKey', {
+        const { stdout } = await exec('git config --get user.signingKey', {
             cwd: project
         });
 
@@ -43,7 +43,7 @@ export async function getSigningKey(project: string): Promise<string> {
 export async function isSigningActivated(project: string): Promise<boolean> {
     try {
         // see: https://git-scm.com/docs/git-config#Documentation/git-config.txt-commitgpgSign
-        const { stdout } = await exec('git config --local --get commit.gpgSign', {
+        const { stdout } = await exec('git config --get commit.gpgSign', {
             cwd: project
         });
 
