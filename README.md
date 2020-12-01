@@ -8,7 +8,8 @@ You can also also unlock the key by clicking the status bar element. :D
 
 ## Features
 
-This extension will show the status of GPG signing key in status bar if your local project folder `.git` or any other default `.gitconfig` configuration file (e.g. `~/.gitconfig`):
+This extension will show the status of GPG signing key in status bar if your local
+`.git/config` or any other default `.gitconfig` configuration file (e.g. `~/.gitconfig`):
 
 - has set `commit.gpgSign` as `true` for git, and
 - has set `user.signingKey` with GPG key ID for git
@@ -37,6 +38,10 @@ Currently there is no setting available.
 Multi-folder workspace is not supported yet.
 
 ## Release Notes
+
+### 0.3.2
+
+Remove the limitation of scope of Git configuration values.
 
 ### 0.3.1
 
