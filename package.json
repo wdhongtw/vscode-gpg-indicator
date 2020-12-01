@@ -2,6 +2,15 @@
 	"name": "gpg-indicator",
 	"displayName": "GPG Indicator",
 	"description": "Status indicator and unlocker for GPG signing key",
+	"keywords": [
+		"pgp",
+		"gpg",
+		"commit"
+	],
+	"author": {
+		"name": "Weida Hong",
+		"url": "https://blog.bitisle.net"
+	},
 	"version": "0.3.1",
 	"publisher": "wdhongtw",
 	"engines": {
