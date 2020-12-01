@@ -8,12 +8,12 @@ You can also also unlock the key by clicking the status bar element. :D
 
 ## Features
 
-This extension will show the status of GPG signing key in status bar if
+This extension will show the status of GPG signing key in status bar if your local project folder `.git` or any other default `.gitconfig` configuration file (e.g. `~/.gitconfig`):
 
-- The project folder has set `commit.gpgSign` as `true` for git, and
-- The project folder has set `user.signingKey` with GPG key ID for git
+- has set `commit.gpgSign` as `true` for git, and
+- has set `user.signingKey` with GPG key ID for git
 
-If the above condition are satisfied, there will be an indicator for your current
+If the above conditions are both satisfied, there will be an indicator for your current
 signing key, together with a cute icon to tell whether the key is unlocked or not.
 
 When you click the indicator, you will be prompted for passphrase to unlock the key.
