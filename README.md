@@ -39,6 +39,10 @@ Multi-folder workspace is not supported yet.
 
 ## Release Notes
 
+### 0.3.3
+
+Enhance the message of error of lacking `expect` tool
+
 ### 0.3.2
 
 Remove the limitation of scope of Git configuration values.

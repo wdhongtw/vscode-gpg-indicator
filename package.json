@@ -11,7 +11,7 @@
 		"name": "Weida Hong",
 		"url": "https://blog.bitisle.net"
 	},
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"publisher": "wdhongtw",
 	"engines": {
 		"vscode": "^1.45.0"

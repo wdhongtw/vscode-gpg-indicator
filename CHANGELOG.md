@@ -4,6 +4,10 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.3] - 2020-12-01
+### Fixed
+- Enhance the message of error of lacking expect tool
+
 ## [0.3.2] - 2020-12-01
 ### Fixed
 - Remove the limitation of scope of Git configuration values
