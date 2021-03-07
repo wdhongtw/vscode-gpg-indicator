@@ -1,5 +1,6 @@
 import * as process from './process';
 import * as tempfile from './tempfile';
+import * as lookpath from 'lookpath';
 
 export interface GpgKeyInfo {
     type: string;
@@ -84,6 +85,15 @@ export async function getKeyInfo(keyId: string): Promise<GpgKeyInfo> {
 }
 
 export async function unlockByKeyId(keyId: string, passphrase: string): Promise<void> {
+    // Check existence before spawn, because NodeJS runtime doesn't provide a elegant
+    // interface to report this kind of failure.
+    // Here we chose lookpath package as it doesn't spawn new process for the checking task.
+    let path: string | undefined;
+    path = await lookpath.lookpath('expect');
+    if (path === undefined) {
+        throw new Error(`can not find the expect tool`);
+    }
+
     let document: tempfile.TempTextFile | undefined;
     let signature: tempfile.TempTextFile | undefined;
 
