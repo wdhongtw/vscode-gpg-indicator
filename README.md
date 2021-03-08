@@ -39,6 +39,10 @@ Multi-folder workspace is not supported yet.
 
 ## Release Notes
 
+### 0.3.4
+
+Fix packaging issue which breaks version 0.3.3
+
 ### 0.3.3
 
 Enhance the message of error of lacking `expect` tool
