@@ -37,6 +37,16 @@ Currently there is no setting available.
 
 Multi-folder workspace is not supported yet.
 
+## FAQ
+
+### How to get the key ID of my signing key?
+
+The key ID of the signing key can be retrieved by the command
+`gpg --list-keys --keyid-format long` .
+
+Locate the key with singing capability (the `S` flag in square brackets),
+and the key ID is the hex string after the algorithm identifier.
+
 ## Release Notes
 
 ### 0.3.4
