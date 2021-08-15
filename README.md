@@ -29,6 +29,14 @@ When you click the indicator, you will be prompted for passphrase to unlock the 
 Current implementation require a pty between this extension and GPG tools to send passphrase,
 so we use `expect` to handle this. I wish I can remove this dependency in the future.
 
+## Issues & Reviews
+
+[Submit a issue](https://github.com/wdhongtw/vscode-gpg-indicator/issues) if you found any problem.
+
+And please leave a comment in
+[review page](https://marketplace.visualstudio.com/items?itemName=wdhongtw.gpg-indicator&ssr=false#review-details)
+if you like this extension!! 😸
+
 ## Extension Settings
 
 Currently there is no setting available.
@@ -46,6 +54,11 @@ The key ID of the signing key can be retrieved by the command
 
 Locate the key with singing capability (the `S` flag in square brackets),
 and the key ID is the hex string after the algorithm identifier.
+
+## Contributors
+
+- `wdhongtw`
+- `kitos9112`
 
 ## Release Notes
 
