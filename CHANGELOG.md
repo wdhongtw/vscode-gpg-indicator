@@ -4,6 +4,10 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.5] - 2021-08-15
+### Fixed
+- Fix some dependency issues
+
 ## [0.3.4] - 2021-03-08
 ### Fixed
 - Fix packaging issue which breaks version 0.3.3

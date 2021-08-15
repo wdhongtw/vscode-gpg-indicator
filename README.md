@@ -62,6 +62,10 @@ and the key ID is the hex string after the algorithm identifier.
 
 ## Release Notes
 
+### 0.3.5
+
+Fix some dependency issues
+
 ### 0.3.4
 
 Fix packaging issue which breaks version 0.3.3
