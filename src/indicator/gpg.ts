@@ -69,6 +69,14 @@ export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
     throw new Error(`Can not find key with ID: ${keyId}`);
 }
 
+/**
+ * Get key information of given ID of GPG key.
+ *
+ * Caller should cache the results from this function whenever possible.
+ *
+ * @param keyId - ID of the GPG key
+ * @returns key information
+ */
 export async function getKeyInfo(keyId: string): Promise<GpgKeyInfo> {
     // --fingerprint flag is give twice to get fingerprint of subkey
     let keyInfoRaw: string = await process.textSpawn('gpg', ['--fingerprint', '--fingerprint', '--with-keygrip'], '');
