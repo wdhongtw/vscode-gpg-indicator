@@ -122,7 +122,7 @@ export async function unlockByKeyId(keyId: string, passphrase: string): Promise<
             `exit $result\n`;
 
         await process.textSpawn('expect', [], expectCommand);
-    } catch(err) {
+    } catch (err) {
         if (err instanceof process.ProcessError) {
             throw new Error('the given passphrase may be wrong');
         } else {
