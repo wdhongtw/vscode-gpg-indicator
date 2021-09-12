@@ -101,6 +101,9 @@ class KeyStatusManager {
                 isLocked: !isUnlocked,
             };
         } catch (err) {
+            if (!(err instanceof Error)) {
+                throw err;
+            }
             console.log(`Fail to check key status: ${err.message}`);
         }
 
