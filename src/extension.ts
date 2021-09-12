@@ -213,6 +213,9 @@ class KeyStatusManager {
 
     // Change current key according to activate folder
     async changeActivateFolder(folder: string): Promise<void> {
+        if (this.#activateFolder === folder) {
+            return;
+        }
         this.#logger.log(`Change folder to ${folder}`);
         this.#activateFolder = folder;
         await this.syncStatus();
