@@ -48,7 +48,26 @@ export function activate(context: vscode.ExtensionContext) {
         keyStatusManager.updateFolders(folders);
         keyStatusManager.changeActivateFolder(folders[0]);
     }
-    // TODO: Monitor change of activate folder
+
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+        const filePath = editor?.document.uri.fsPath;
+        if (!filePath || !vscode.workspace.workspaceFolders) {
+            return;
+        }
+        for (const folder of vscode.workspace.workspaceFolders) {
+            if (filePath.includes(folder.uri.path)) {
+                await keyStatusManager.changeActivateFolder(folder.uri.path);
+                return;
+            }
+        }
+    }));
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
+        if (vscode.workspace.workspaceFolders === undefined) {
+            return;
+        }
+        const folders = toFolders(vscode.workspace.workspaceFolders);
+        keyStatusManager.updateFolders(folders);
+    }));
 
     keyStatusManager.registerUpdateFunction((event) => {
         const shortId = event.keyId.substr(event.keyId.length - 16);
@@ -193,9 +212,10 @@ class KeyStatusManager {
     }
 
     // Change current key according to activate folder
-    changeActivateFolder(folder: string): void {
+    async changeActivateFolder(folder: string): Promise<void> {
         this.#logger.log(`Change folder to ${folder}`);
         this.#activateFolder = folder;
+        await this.syncStatus();
     }
 
     registerUpdateFunction(update: (event: KeyStatusEvent) => void): void {
