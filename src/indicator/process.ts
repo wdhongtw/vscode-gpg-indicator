@@ -21,7 +21,7 @@ export class ProcessError extends Error {
  * @param args - options and arguments, executable name is not included
  * @param input - stdin
  * @returns The promise which resolve the stdout. Rejects if fail to run command or command returns not zero value.
- * 
+ *
  * @throws {@link ProcessError}
  * This error will be throw if the process returns non-zero
  */
