@@ -7,11 +7,6 @@ import * as process from './indicator/process';
 // Default interval to sync key status, in second.
 const syncStatusInterval = 30;
 
-interface KeyStatusEvent {
-    keyId: string
-    isLocked: boolean
-}
-
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
     return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.path);
 }
@@ -64,7 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 }
 
-export function deactivate() {}
+export function deactivate() { }
 
 class VscodeOutputLogger {
     #outputChannel: vscode.OutputChannel;
@@ -91,6 +86,20 @@ interface Logger {
     log(message: string): void
 }
 
+class KeyStatusEvent {
+    keyId: string;
+    isLocked: boolean;
+
+    constructor(keyId: string, isLocked: boolean) {
+        this.keyId = keyId;
+        this.isLocked = isLocked;
+    }
+
+    static equal(left: KeyStatusEvent, right: KeyStatusEvent): boolean {
+        return left.keyId === right.keyId && left.isLocked === right.isLocked;
+    }
+}
+
 class KeyStatusManager {
     #activateFolder: string | undefined;
     #lastEvent: KeyStatusEvent | undefined;
@@ -106,7 +115,7 @@ class KeyStatusManager {
 
     private async syncLoop(): Promise<void> {
         await process.sleep(1 * 1000);
-        while(!this.#disposed) {
+        while (!this.#disposed) {
             if (this.#activateFolder) {
                 await this.syncStatus();
             }
@@ -139,7 +148,12 @@ class KeyStatusManager {
             this.#logger.log(`Fail to check key status: ${err.message}`);
         }
 
-        if (newEvent !== undefined && newEvent !== this.#lastEvent) {
+        if (newEvent === undefined) {
+            return;
+        } else if (this.#lastEvent === undefined) {
+            this.#lastEvent = newEvent;
+            this.notifyUpdate(newEvent);
+        } else if (!KeyStatusEvent.equal(newEvent, this.#lastEvent)) {
             this.#lastEvent = newEvent;
             this.notifyUpdate(newEvent);
         }
