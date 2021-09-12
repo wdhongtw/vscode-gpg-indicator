@@ -17,12 +17,13 @@ export class ProcessError extends Error {
 /**
  * Run specified command, with given input and return output(promise) in string
  *
- * @param command executable name
- * @param args options and arguments, executable name is not included
- * @param input stdin
- * @throws {ProcessError} if the process returns non-zero
- * @throws Other errors may be throws by underline Node runtime
+ * @param command - executable name
+ * @param args - options and arguments, executable name is not included
+ * @param input - stdin
  * @returns The promise which resolve the stdout. Rejects if fail to run command or command returns not zero value.
+ * 
+ * @throws {@link ProcessError}
+ * This error will be throw if the process returns non-zero
  */
 export function textSpawn(command: string, args: Array<string>, input: string): Promise<string> {
     return new Promise((resolve, reject) => {

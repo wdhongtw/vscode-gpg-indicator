@@ -6,7 +6,8 @@
         "sourceType": "module"
     },
     "plugins": [
-        "@typescript-eslint"
+        "@typescript-eslint",
+        "eslint-plugin-tsdoc"
     ],
     "rules": {
         "@typescript-eslint/class-name-casing": "warn",
@@ -16,6 +17,7 @@
         "no-throw-literal": "warn",
         "semi": "error",
         "no-tabs": "error",
-        "indent": "error"
+        "indent": "error",
+        "tsdoc/syntax": "warn"
     }
 }
