@@ -25,7 +25,13 @@
 	],
 	"main": "./out/extension.js",
 	"contributes": {
-		"commands": []
+		"commands": [
+			{
+				"command": "gpgIndicator.unlockCurrentKey",
+				"title": "Unlock Current Key",
+				"category": "GPG"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
