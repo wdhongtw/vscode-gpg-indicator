@@ -4,6 +4,13 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.4.0] - 2021-09-12
+### Added
+- Unlock key through palette command
+- Output channel for basic logging
+### Fixed
+- Key event equality checking
+
 ## [0.3.5] - 2021-08-15
 ### Fixed
 - Fix some dependency issues
