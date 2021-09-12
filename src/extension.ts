@@ -7,20 +7,20 @@ import * as process from './indicator/process';
 // Default interval to sync key status, in second.
 const syncStatusInterval = 30;
 
-interface KeyStatusEvent {
-    keyId: string
-    isLocked: boolean
-}
-
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
     return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.path);
 }
 
 export function activate(context: vscode.ExtensionContext) {
+    const logger: Logger = new VscodeOutputLogger('GPG Indicator');
+    logger.log('Active GPG Indicator extension ...');
+    logger.log(`Setting: sync status interval: ${syncStatusInterval}`);
+
     const keyStatusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     context.subscriptions.push(keyStatusItem);
 
-    const keyStatusManager = new KeyStatusManager();
+    logger.log('Create key status manager');
+    const keyStatusManager = new KeyStatusManager(logger);
     context.subscriptions.push(keyStatusManager);
 
     const commandId = 'gpgIndicator.unlockCurrentKey';
@@ -59,7 +59,46 @@ export function activate(context: vscode.ExtensionContext) {
     });
 }
 
-export function deactivate() {}
+export function deactivate() { }
+
+class VscodeOutputLogger {
+    #outputChannel: vscode.OutputChannel;
+    /**
+     * @param name - The name of VS Code output channel on UI
+     */
+    constructor(name: string) {
+        this.#outputChannel = vscode.window.createOutputChannel(name);
+    }
+
+    log(message: string): void {
+        this.#outputChannel.appendLine(message);
+    }
+}
+
+/**
+ * Logger is a sample interface for basic logging ability.
+ */
+interface Logger {
+    /**
+     * Log some message.
+     * @param message - a message without ending new line
+     */
+    log(message: string): void
+}
+
+class KeyStatusEvent {
+    keyId: string;
+    isLocked: boolean;
+
+    constructor(keyId: string, isLocked: boolean) {
+        this.keyId = keyId;
+        this.isLocked = isLocked;
+    }
+
+    static equal(left: KeyStatusEvent, right: KeyStatusEvent): boolean {
+        return left.keyId === right.keyId && left.isLocked === right.isLocked;
+    }
+}
 
 class KeyStatusManager {
     #activateFolder: string | undefined;
@@ -67,14 +106,16 @@ class KeyStatusManager {
     #keyOfFolders: Map<string, gpg.GpgKeyInfo> = new Map();
     #disposed: boolean = false;
     #updateFunctions: ((event: KeyStatusEvent) => void)[] = [];
+    #logger: Logger;
 
-    constructor() {
+    constructor(logger: Logger) {
+        this.#logger = logger;
         this.syncLoop();
     }
 
     private async syncLoop(): Promise<void> {
         await process.sleep(1 * 1000);
-        while(!this.#disposed) {
+        while (!this.#disposed) {
             if (this.#activateFolder) {
                 await this.syncStatus();
             }
@@ -104,23 +145,31 @@ class KeyStatusManager {
             if (!(err instanceof Error)) {
                 throw err;
             }
-            console.log(`Fail to check key status: ${err.message}`);
+            this.#logger.log(`Fail to check key status: ${err.message}`);
         }
 
-        if (newEvent !== undefined && newEvent !== this.#lastEvent) {
+        if (newEvent === undefined) {
+            return;
+        } else if (this.#lastEvent === undefined) {
+            this.#lastEvent = newEvent;
+            this.notifyUpdate(newEvent);
+        } else if (!KeyStatusEvent.equal(newEvent, this.#lastEvent)) {
             this.#lastEvent = newEvent;
             this.notifyUpdate(newEvent);
         }
     }
 
-    private notifyUpdate(keyStatus: KeyStatusEvent): void {
+    private notifyUpdate(event: KeyStatusEvent): void {
+        this.#logger.log(`New event, key: ${event.keyId}, is locked: ${event.isLocked}`);
+        this.#logger.log('Trigger status update functions');
         for (const update of this.#updateFunctions) {
-            update(keyStatus);
+            update(event);
         }
     }
 
     // Update workspace folders
     async updateFolders(folders: string[]): Promise<void> {
+        this.#logger.log('Update folder information');
         this.#keyOfFolders.clear();
         for (const folder of folders) {
             this.updateFolder(folder);
@@ -135,19 +184,22 @@ class KeyStatusManager {
             }
             const keyId = await git.getSigningKey(folder);
             const keyInfo = await gpg.getKeyInfo(keyId);
+            this.#logger.log(`Find key ${keyInfo.fingerprint} for folder ${folder}`);
             this.#keyOfFolders.set(folder, keyInfo);
         } catch (err) {
-            console.log(`Can not found key for folder: ${folder}`);
+            this.#logger.log(`Can not found key for folder: ${folder}`);
         }
         return;
     }
 
     // Change current key according to activate folder
     changeActivateFolder(folder: string): void {
+        this.#logger.log(`Change folder to ${folder}`);
         this.#activateFolder = folder;
     }
 
     registerUpdateFunction(update: (event: KeyStatusEvent) => void): void {
+        this.#logger.log('Got one update function');
         this.#updateFunctions.push(update);
     }
 
@@ -162,6 +214,7 @@ class KeyStatusManager {
             throw new Error('No key for current folder');
         }
 
+        this.#logger.log(`Try to unlock current key: ${theKey.fingerprint}`);
         await gpg.unlockByKeyId(theKey.fingerprint, passphrase);
         await this.syncStatus();
     }
