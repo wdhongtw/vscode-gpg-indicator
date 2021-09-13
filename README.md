@@ -43,7 +43,8 @@ if you like this extension!! 😸
 
 ## Extension Settings
 
-Currently there is no setting available.
+- `gpgIndicator.statusRefreshInterval`
+  - The interval of background key status refresh loop. Default to 30 seconds.
 
 ## Known Issues
 
