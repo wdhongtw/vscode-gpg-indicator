@@ -5,7 +5,8 @@
 	"keywords": [
 		"pgp",
 		"gpg",
-		"commit"
+		"commit",
+		"multi-root ready"
 	],
 	"author": {
 		"name": "Weida Hong",

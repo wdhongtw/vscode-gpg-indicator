@@ -50,16 +50,15 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-        const filePath = editor?.document.uri.fsPath;
-        if (!filePath || !vscode.workspace.workspaceFolders) {
+        const fileUri = editor?.document.uri;
+        if (!fileUri) {
             return;
         }
-        for (const folder of vscode.workspace.workspaceFolders) {
-            if (filePath.includes(folder.uri.path)) {
-                await keyStatusManager.changeActivateFolder(folder.uri.path);
-                return;
-            }
+        const folder = vscode.workspace.getWorkspaceFolder(fileUri);
+        if (!folder) {
+            return;
         }
+        await keyStatusManager.changeActivateFolder(folder.uri.path);
     }));
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
         if (vscode.workspace.workspaceFolders === undefined) {
