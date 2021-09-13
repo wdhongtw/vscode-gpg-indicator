@@ -4,15 +4,31 @@ import * as git from './indicator/git';
 import * as gpg from './indicator/gpg';
 import * as process from './indicator/process';
 
-// Default interval to sync key status, in second.
-const syncStatusInterval = 30;
-
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
     return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.path);
 }
 
+function getRefreshInterval(logger: Logger): number | undefined {
+    const configuration = vscode.workspace.getConfiguration('gpgIndicator');
+    if (!configuration) {
+        logger.log('Can not retrieve configuration');
+        return;
+    }
+    const syncStatusInterval = configuration.get('statusRefreshInterval');
+    if (!syncStatusInterval || typeof syncStatusInterval !== 'number') {
+        logger.log(`Unhandled value of refresh interval ${syncStatusInterval}`);
+        return;
+    }
+
+    return syncStatusInterval;
+}
+
 export function activate(context: vscode.ExtensionContext) {
     const logger: Logger = new VscodeOutputLogger('GPG Indicator');
+    const syncStatusInterval = getRefreshInterval(logger);
+    if (!syncStatusInterval) {
+        return;
+    }
     logger.log('Active GPG Indicator extension ...');
     logger.log(`Setting: sync status interval: ${syncStatusInterval}`);
 
@@ -20,7 +36,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(keyStatusItem);
 
     logger.log('Create key status manager');
-    const keyStatusManager = new KeyStatusManager(logger);
+    const keyStatusManager = new KeyStatusManager(logger, syncStatusInterval);
+    keyStatusManager.syncLoop();
     context.subscriptions.push(keyStatusManager);
 
     const commandId = 'gpgIndicator.unlockCurrentKey';
@@ -49,6 +66,13 @@ export function activate(context: vscode.ExtensionContext) {
         keyStatusManager.changeActivateFolder(folders[0]);
     }
 
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
+        const syncStatusInterval = getRefreshInterval(logger);
+        if (!syncStatusInterval) {
+            return;
+        }
+        keyStatusManager.updateSyncInterval(syncStatusInterval);
+    }));
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async (editor) => {
         const filePath = editor?.document.uri.fsPath;
         if (!filePath || !vscode.workspace.workspaceFolders) {
@@ -126,21 +150,32 @@ class KeyStatusManager {
     #disposed: boolean = false;
     #updateFunctions: ((event: KeyStatusEvent) => void)[] = [];
     #logger: Logger;
+    #syncInterval: number;
 
-    constructor(logger: Logger) {
+    /**
+     * Construct the key status manager.
+     *
+     * @param logger - the output logger for debugging logs.
+     * @param syncInterval - key status sync interval in seconds.
+     */
+    constructor(logger: Logger, syncInterval: number) {
         this.#logger = logger;
-        this.syncLoop();
+        this.#syncInterval = syncInterval;
     }
 
-    private async syncLoop(): Promise<void> {
+    async syncLoop(): Promise<void> {
         await process.sleep(1 * 1000);
         while (!this.#disposed) {
             if (this.#activateFolder) {
                 await this.syncStatus();
             }
-            await process.sleep(syncStatusInterval * 1000);
+            await process.sleep(this.#syncInterval * 1000);
         }
         return;
+    }
+
+    updateSyncInterval(syncInterval: number): void {
+        this.#syncInterval = syncInterval;
     }
 
     private async syncStatus(): Promise<void> {

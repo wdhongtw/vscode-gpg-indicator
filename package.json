@@ -31,7 +31,18 @@
 				"title": "Unlock Current Key",
 				"category": "GPG"
 			}
-		]
+		],
+		"configuration": {
+			"title": "GPG Indicator",
+			"properties": {
+				"gpgIndicator.statusRefreshInterval": {
+					"type": "number",
+					"default": 30,
+					"minimum": 1,
+					"description": "Background refresh interval (in seconds) for key status."
+				}
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
