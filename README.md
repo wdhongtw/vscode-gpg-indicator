@@ -47,7 +47,7 @@ Currently there is no setting available.
 
 ## Known Issues
 
-Multi-folder workspace is not supported yet.
+See issue page on GitHub if interested.
 
 ## FAQ
 
