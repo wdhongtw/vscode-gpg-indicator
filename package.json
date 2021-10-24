@@ -22,7 +22,8 @@
 	],
 	"icon": "images/icon-color.png",
 	"activationEvents": [
-		"workspaceContains:/.git"
+		"workspaceContains:/.git",
+		"onCommand:gpgIndicator.unlockCurrentKey"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
