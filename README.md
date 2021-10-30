@@ -64,8 +64,13 @@ and the key ID is the hex string after the algorithm identifier.
 
 - `wdhongtw`
 - `kitos9112`
+- `altjx`
 
 ## Release Notes
+
+### 0.5.0
+
+Support multi-root workspace and let user adjust status refresh interval.
 
 ### 0.4.0
 

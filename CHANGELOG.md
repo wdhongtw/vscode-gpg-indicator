@@ -4,6 +4,17 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.5.0] - 2021-10-30
+### Added
+- Support multi-root workspace.
+- Expose refresh interval as a configurable value for user.
+- Add unlock command as an activation event.
+### Changed
+- Upgrade development dependencies and npm lock file version.
+### Fixed
+- Check key status before unlocking, avoiding error message.
+
+
 ## [0.4.0] - 2021-09-12
 ### Added
 - Unlock key through palette command
