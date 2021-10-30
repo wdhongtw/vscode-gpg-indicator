@@ -271,6 +271,12 @@ class KeyStatusManager {
             throw new Error('No key for current folder');
         }
 
+        await this.syncStatus();
+        if (await gpg.isKeyUnlocked(theKey.keygrip)) {
+            this.#logger.log(`Key is already unlocked, skip unlock request`);
+            return;
+        }
+
         this.#logger.log(`Try to unlock current key: ${theKey.fingerprint}`);
         await gpg.unlockByKeyId(theKey.fingerprint, passphrase);
         await this.syncStatus();
