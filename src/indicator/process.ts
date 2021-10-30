@@ -41,15 +41,15 @@ export function textSpawn(command: string, args: Array<string>, input: string): 
             output = data;
         });
         proc.stderr.setEncoding('utf8');
-        let error_message: string;
+        let errorMessage: string;
         proc.stderr.on('data', (data) => {
-            error_message = data;
+            errorMessage = data;
         });
 
         proc.on('error', reject);
         proc.on('close', (code) => {
             if (code !== 0) {
-                reject(new ProcessError(`Command ${command} failed, return code: ${code}, stderr: ${error_message}`));
+                reject(new ProcessError(`Command ${command} failed, return code: ${code}, stderr: ${errorMessage}`));
             }
             resolve(output);
         });
