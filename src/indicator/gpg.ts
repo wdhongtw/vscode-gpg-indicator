@@ -55,15 +55,9 @@ export async function isKeyUnlocked(keygrip: string): Promise<boolean> {
 }
 
 export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
-    // --fingerprint flag is give twice to get fingerprint of subkey
-    let keyInfoRaw: string = await process.textSpawn('gpg', ['--fingerprint', '--fingerprint', '--with-keygrip'], '');
-    let infos = parseGpgKey(keyInfoRaw);
-
-    for (let info of infos) {
-        // GPG signing key is usually given as shorter ID
-        if (info.fingerprint.includes(keyId)) {
-            return isKeyUnlocked(info.keygrip);
-        }
+    const keyInfo = await getKeyInfo(keyId);
+    if (keyInfo) {
+        return isKeyUnlocked(keyInfo.keygrip);
     }
 
     throw new Error(`Can not find key with ID: ${keyId}`);
