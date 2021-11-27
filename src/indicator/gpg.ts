@@ -12,20 +12,22 @@ export interface GpgKeyInfo {
 /**
  * Parse lots GPG key information from gpg command
  *
- * @param rawText - output string from gpg --fingerprint --fingerprint --with-keygrip
+ * @param rawText - output string from gpg --fingerprint --fingerprint --with-keygrip --with-colon
  */
 function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
-    let pattern: RegExp = /(pub|sub)\s+\w+.*\[(.)*\]\n((?:\s*\w+)*)\n\s+Keygrip\s=\s(\w+)/g;
-    // group 1: pub or sub, 2: ability (E S C A), 3: fingerprint with spaces 4. keygrip
+    /**
+     * group 1: pub or sub, 2: ability (E S C A), 3: fingerprint 4. keygrip
+     * For more information, see https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=blob_plain;f=doc/DETAILS
+     */
+    let pattern: RegExp = /(pub|sub).*:([escaD?]+)\w*:.*\n.*fpr.*:(\w*):\n.*grp.*:(\w*):/g;
 
     let infos: Array<GpgKeyInfo> = [];
     let matched: RegExpExecArray | null;
     while ((matched = pattern.exec(rawText)) !== null) {
-        let fingerprint = matched[3].replace(/\s+/g, '');
         let info = {
             type: matched[1],
             capabilities: matched[2],
-            fingerprint: fingerprint,
+            fingerprint: matched[3],
             keygrip: matched[4],
         };
         infos.push(info);
@@ -55,15 +57,9 @@ export async function isKeyUnlocked(keygrip: string): Promise<boolean> {
 }
 
 export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
-    // --fingerprint flag is give twice to get fingerprint of subkey
-    let keyInfoRaw: string = await process.textSpawn('gpg', ['--fingerprint', '--fingerprint', '--with-keygrip'], '');
-    let infos = parseGpgKey(keyInfoRaw);
-
-    for (let info of infos) {
-        // GPG signing key is usually given as shorter ID
-        if (info.fingerprint.includes(keyId)) {
-            return isKeyUnlocked(info.keygrip);
-        }
+    const keyInfo = await getKeyInfo(keyId);
+    if (keyInfo) {
+        return isKeyUnlocked(keyInfo.keygrip);
     }
 
     throw new Error(`Can not find key with ID: ${keyId}`);
@@ -78,8 +74,12 @@ export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
  * @returns key information
  */
 export async function getKeyInfo(keyId: string): Promise<GpgKeyInfo> {
-    // --fingerprint flag is give twice to get fingerprint of subkey
-    let keyInfoRaw: string = await process.textSpawn('gpg', ['--fingerprint', '--fingerprint', '--with-keygrip'], '');
+    /**
+     * --fingerprint flag is given twice to get fingerprint of subkey
+     * --with-colon flag is given to get the key information in a more machine-readable manner
+     * For more information, see https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=blob_plain;f=doc/DETAILS
+     */
+    let keyInfoRaw: string = await process.textSpawn('gpg', ['--fingerprint', '--fingerprint', '--with-keygrip', '--with-colon'], '');
     let infos = parseGpgKey(keyInfoRaw);
 
     for (let info of infos) {
@@ -135,4 +135,3 @@ export async function unlockByKeyId(keyId: string, passphrase: string): Promise<
     // gpg can signed the document even if the document is empty
 
 }
-
