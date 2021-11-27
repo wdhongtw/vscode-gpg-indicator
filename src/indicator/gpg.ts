@@ -19,7 +19,7 @@ function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
      * group 1: pub or sub, 2: ability (E S C A), 3: fingerprint 4. keygrip
      * For more information, see https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=blob_plain;f=doc/DETAILS
      */
-    let pattern: RegExp = /(pub|sub).*:([escaD?]+)\w*:.*\n.*fpr.*:(\w*):\n.*grp.*:(\w*):/g;
+    let pattern: RegExp = /(pub|sub):(?:[^:]*:){10}([escaD?]+)\w*:(?:[^:]*:)*?\n(?:fpr|fp2):(?:[^:]*:){8}(\w*):(?:[^:]*:)*?\ngrp:(?:[^:]*:){8}(\w*):(?:[^:]*:)*?/g;
 
     let infos: Array<GpgKeyInfo> = [];
     let matched: RegExpExecArray | null;
