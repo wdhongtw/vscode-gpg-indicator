@@ -1,12 +1,80 @@
 import * as process from './process';
-import * as tempfile from './tempfile';
-import * as lookpath from 'lookpath';
+import * as assuan from './assuan';
 
 export interface GpgKeyInfo {
     type: string;
     capabilities: string;
     fingerprint: string;
     keygrip: string;
+}
+
+/**
+ * Get the path of socket file for communication with GPG agent.
+ *
+ * @returns The path of desired GPG agent socket.
+ */
+async function getSocketPath(): Promise<string> {
+    // TODO: Consider supporting other socket files rather than the default one.
+    const outputs = await process.textSpawn('gpgconf', ['--list-dir', 'agent-socket'], "");
+
+    return outputs.trim();
+}
+
+/**
+ * Sign the given hash string with the specified GPG key.
+ *
+ * @param logger - The logger object for debugging logs.
+ * @param socketPath - The path of socket file to communicated with GPG agent.
+ * @param keygrip - The keygrip of the GPG key for the signing operation.
+ * @param passphrase - The passphrase of the key.
+ * @param sha1Hash - The hash string to be signed.
+ */
+async function sign(logger: assuan.Logger, socketPath: string, keygrip: string, passphrase: string, sha1Hash: string): Promise<void> {
+    let response: assuan.Response;
+
+    const agent = new assuan.AssuanClient(logger, socketPath);
+    await agent.initialize();
+    try {
+        response = await agent.receiveResponse();
+        response.checkType(assuan.ResponseType.ok);
+
+        await agent.sendRequest(assuan.Request.fromCommand(new assuan.RequestCommand('OPTION', 'pinentry-mode loopback')));
+        response = await agent.receiveResponse();
+        response.checkType(assuan.ResponseType.ok);
+
+        await agent.sendRequest(assuan.Request.fromCommand(new assuan.RequestCommand('SIGKEY', keygrip)));
+        response = await agent.receiveResponse();
+        response.checkType(assuan.ResponseType.ok);
+
+        await agent.sendRequest(assuan.Request.fromCommand(new assuan.RequestCommand('SETHASH', `--hash=sha1 ${sha1Hash}`)));
+        response = await agent.receiveResponse();
+        response.checkType(assuan.ResponseType.ok);
+
+        await agent.sendRequest(assuan.Request.fromCommand(new assuan.RequestCommand('PKSIGN')));
+        response = await agent.receiveResponse();
+        let type = response.getType();
+        if (type === assuan.ResponseType.rawData) { // Key is already unlocked
+            response = await agent.receiveResponse();
+            response.checkType(assuan.ResponseType.ok);
+        } else if (type === assuan.ResponseType.information) { // S INQUIRE_MAXLEN 255, key is locked
+            response = await agent.receiveResponse();
+            response.checkType(assuan.ResponseType.inquire); // INQUIRE PASSPHRASE
+            await agent.sendRequest(assuan.Request.fromRawData(new assuan.RequestRawData(Buffer.from(passphrase))));
+            await agent.sendRequest(assuan.Request.fromCommand(new assuan.RequestCommand('END')));
+            response = await agent.receiveResponse();
+            response.checkType(assuan.ResponseType.rawData);
+            response = await agent.receiveResponse();
+            response.checkType(assuan.ResponseType.ok);
+        } else {
+            throw new Error('unhandled signing flow');
+        }
+
+        await agent.sendRequest(assuan.Request.fromCommand(new assuan.RequestCommand('BYE')));
+        response = await agent.receiveResponse();
+        response.checkType(assuan.ResponseType.ok);
+    } finally {
+        agent.dispose();
+    }
 }
 
 /**
@@ -58,11 +126,8 @@ export async function isKeyUnlocked(keygrip: string): Promise<boolean> {
 
 export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
     const keyInfo = await getKeyInfo(keyId);
-    if (keyInfo) {
-        return isKeyUnlocked(keyInfo.keygrip);
-    }
 
-    throw new Error(`Can not find key with ID: ${keyId}`);
+    return isKeyUnlocked(keyInfo.keygrip);
 }
 
 /**
@@ -89,49 +154,21 @@ export async function getKeyInfo(keyId: string): Promise<GpgKeyInfo> {
         }
     }
 
-    throw new Error(`Can not find key with ID: ${keyId}`);
+    throw new Error(`Cannot find key with ID: ${keyId}`);
 }
 
-export async function unlockByKeyId(keyId: string, passphrase: string): Promise<void> {
-    // Check existence before spawn, because NodeJS runtime doesn't provide a elegant
-    // interface to report this kind of failure.
-    // Here we chose lookpath package as it doesn't spawn new process for the checking task.
-    let path: string | undefined;
-    path = await lookpath.lookpath('expect');
-    if (path === undefined) {
-        throw new Error(`can not find the expect tool`);
-    }
+const SHA1_EMPTY_DIGEST = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
 
-    let document: tempfile.TempTextFile | undefined;
-    let signature: tempfile.TempTextFile | undefined;
+/**
+ * Unlock some key with the passphrase.
+ *
+ * @param logger - The logger for debugging information.
+ * @param keygrip - The keygrip of the key to be unlocked
+ * @param passphrase - The passphrase for the key.
+ */
+export async function unlockByKey(logger: assuan.Logger, keygrip: string, passphrase: string): Promise<void> {
+    const socketPath = await getSocketPath();
 
-    try {
-        document = new tempfile.TempTextFile();
-        signature = new tempfile.TempTextFile();
-        await document.create();
-        await signature.create();
-
-        const expectCommand =
-            `spawn gpg --clear-sign --pinentry-mode loopback --local-user ${keyId} ` +
-            `--output ${signature.filePath} ${document.filePath}\n` +
-            `expect "*Overwrite? (y/N)*"\n` +
-            `send "y\\r"\n` +
-            `expect "*Enter passphrase:*"\n` +
-            `send "${passphrase}\\r"\n` +
-            `set result [lindex [wait] 3]\n` +
-            `exit $result\n`;
-
-        await process.textSpawn('expect', [], expectCommand);
-    } catch (err) {
-        if (err instanceof process.ProcessError) {
-            throw new Error('the given passphrase may be wrong');
-        } else {
-            throw err;
-        }
-    } finally {
-        signature?.dispose();
-        document?.dispose();
-    }
-    // gpg can signed the document even if the document is empty
-
+    // Hash value is not important here, the only requirement is the length of the hash value.
+    await sign(logger, socketPath, keygrip, passphrase, SHA1_EMPTY_DIGEST);
 }
