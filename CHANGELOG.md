@@ -4,6 +4,11 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.6.0] - 2022-03-09
+### Changed
+- Remove the binary tool dependency of `expect`
+
+
 ## [0.5.0] - 2021-10-30
 ### Added
 - Support multi-root workspace.

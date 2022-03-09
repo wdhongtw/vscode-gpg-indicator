@@ -63,6 +63,10 @@ and the key ID is the hex string after the algorithm identifier.
 
 ## Release Notes
 
+### 0.6.0
+
+Finally, remove the dependency of the binary tool, `expect`. :D
+
 ### 0.5.0
 
 Support multi-root workspace and let user adjust status refresh interval.
