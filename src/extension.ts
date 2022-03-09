@@ -278,7 +278,7 @@ class KeyStatusManager {
         }
 
         this.#logger.log(`Try to unlock current key: ${theKey.fingerprint}`);
-        await gpg.unlockByKeyId(theKey.fingerprint, passphrase);
+        await gpg.unlockByKey(this.#logger, theKey.keygrip, passphrase);
         await this.syncStatus();
     }
 
