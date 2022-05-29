@@ -42,6 +42,12 @@
 					"default": 30,
 					"minimum": 1,
 					"description": "Background refresh interval (in seconds) for key status."
+				},
+				"gpgIndicator.outputLogLevel": {
+					"type": "string",
+					"default": "info",
+					"description": "Log level for extension log output",
+					"enum": ["error", "warning", "info"]
 				}
 			}
 		}
