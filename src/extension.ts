@@ -3,39 +3,25 @@ import * as vscode from 'vscode';
 import * as git from './indicator/git';
 import * as gpg from './indicator/gpg';
 import * as process from './indicator/process';
+import { Logger } from './indicator/logger';
 
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
     return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.path);
 }
 
-function getRefreshInterval(logger: Logger): number | undefined {
-    const configuration = vscode.workspace.getConfiguration('gpgIndicator');
-    if (!configuration) {
-        logger.log('Can not retrieve configuration');
-        return;
-    }
-    const syncStatusInterval = configuration.get('statusRefreshInterval');
-    if (!syncStatusInterval || typeof syncStatusInterval !== 'number') {
-        logger.log(`Unhandled value of refresh interval ${syncStatusInterval}`);
-        return;
-    }
-
-    return syncStatusInterval;
-}
-
 export function activate(context: vscode.ExtensionContext) {
-    const logger: Logger = new VscodeOutputLogger('GPG Indicator');
-    const syncStatusInterval = getRefreshInterval(logger);
-    if (!syncStatusInterval) {
-        return;
-    }
-    logger.log('Active GPG Indicator extension ...');
-    logger.log(`Setting: sync status interval: ${syncStatusInterval}`);
+    const configuration = vscode.workspace.getConfiguration('gpgIndicator');
+    const logLevel = configuration.get<string>('outputLogLevel', "info");
+    const logger = new VscodeOutputLogger('GPG Indicator', logLevel);
+    const syncStatusInterval = configuration.get<number>('statusRefreshInterval', 30);
+
+    logger.info('Active GPG Indicator extension ...');
+    logger.info(`Setting: sync status interval: ${syncStatusInterval}`);
 
     const keyStatusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     context.subscriptions.push(keyStatusItem);
 
-    logger.log('Create key status manager');
+    logger.info('Create key status manager');
     const keyStatusManager = new KeyStatusManager(logger, syncStatusInterval);
     keyStatusManager.syncLoop();
     context.subscriptions.push(keyStatusManager);
@@ -67,11 +53,10 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
-        const syncStatusInterval = getRefreshInterval(logger);
-        if (!syncStatusInterval) {
-            return;
-        }
-        keyStatusManager.updateSyncInterval(syncStatusInterval);
+        logger.info("[Configuration] Change event detected");
+        const configuration = vscode.workspace.getConfiguration('gpgIndicator');
+        keyStatusManager.updateSyncInterval(configuration.get<number>('statusRefreshInterval', 30));
+        logger.setLevel(configuration.get<string>('outputLogLevel', "info"));
     }));
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async (editor) => {
         const fileUri = editor?.document.uri;
@@ -103,29 +88,61 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() { }
 
-class VscodeOutputLogger {
-    #outputChannel: vscode.OutputChannel;
-    /**
-     * @param name - The name of VS Code output channel on UI
-     */
-    constructor(name: string) {
-        this.#outputChannel = vscode.window.createOutputChannel(name);
-    }
-
-    log(message: string): void {
-        this.#outputChannel.appendLine(message);
-    }
+enum LogLevel {
+    error = 1,
+    warning,
+    info
 }
 
-/**
- * Logger is a sample interface for basic logging ability.
- */
-interface Logger {
+class VscodeOutputLogger {
+    #outputChannel: vscode.OutputChannel;
+    #level: LogLevel;
     /**
-     * Log some message.
-     * @param message - a message without ending new line
+     * @param name - The name of VS Code output channel on UI
+     * @param level - The log level for the logger
      */
-    log(message: string): void
+    constructor(name: string, level: string) {
+        this.#outputChannel = vscode.window.createOutputChannel(name);
+        this.#level = VscodeOutputLogger.levelFromString(level);
+    }
+
+    static levelFromString(level: string): LogLevel {
+        switch (level) {
+        case "error":
+            return LogLevel.error;
+        case "warning":
+            return LogLevel.warning;
+        case "info":
+            return LogLevel.info;
+        default:
+            throw new Error(`unknown log level: ${level}`);
+        }
+    }
+
+    setLevel(level: string): void {
+        this.#level = VscodeOutputLogger.levelFromString(level);
+    }
+
+    info(message: string): void {
+        if (this.#level < LogLevel.info) {
+            return;
+        }
+        this.#outputChannel.appendLine("[INFO] " + message);
+    }
+
+    warn(message: string): void {
+        if (this.#level < LogLevel.warning) {
+            return;
+        }
+        this.#outputChannel.appendLine("[WARN] " + message);
+    }
+
+    error(message: string): void {
+        if (this.#level < LogLevel.error) {
+            return;
+        }
+        this.#outputChannel.appendLine("[ERROR] " + message);
+    }
 }
 
 class KeyStatusEvent {
@@ -198,7 +215,7 @@ class KeyStatusManager {
             if (!(err instanceof Error)) {
                 throw err;
             }
-            this.#logger.log(`Fail to check key status: ${err.message}`);
+            this.#logger.error(`Fail to check key status: ${err.message}`);
         }
 
         if (newEvent === undefined) {
@@ -213,8 +230,8 @@ class KeyStatusManager {
     }
 
     private notifyUpdate(event: KeyStatusEvent): void {
-        this.#logger.log(`New event, key: ${event.keyId}, is locked: ${event.isLocked}`);
-        this.#logger.log('Trigger status update functions');
+        this.#logger.info(`New event, key: ${event.keyId}, is locked: ${event.isLocked}`);
+        this.#logger.info('Trigger status update functions');
         for (const update of this.#updateFunctions) {
             update(event);
         }
@@ -222,7 +239,7 @@ class KeyStatusManager {
 
     // Update workspace folders
     async updateFolders(folders: string[]): Promise<void> {
-        this.#logger.log('Update folder information');
+        this.#logger.info('Update folder information');
         this.#keyOfFolders.clear();
         for (const folder of folders) {
             this.updateFolder(folder);
@@ -237,10 +254,10 @@ class KeyStatusManager {
             }
             const keyId = await git.getSigningKey(folder);
             const keyInfo = await gpg.getKeyInfo(keyId);
-            this.#logger.log(`Find key ${keyInfo.fingerprint} for folder ${folder}`);
+            this.#logger.info(`Find key ${keyInfo.fingerprint} for folder ${folder}`);
             this.#keyOfFolders.set(folder, keyInfo);
         } catch (err) {
-            this.#logger.log(`Can not found key for folder: ${folder}`);
+            this.#logger.warn(`Can not found key for folder: ${folder}`);
         }
         return;
     }
@@ -250,13 +267,13 @@ class KeyStatusManager {
         if (this.#activateFolder === folder) {
             return;
         }
-        this.#logger.log(`Change folder to ${folder}`);
+        this.#logger.info(`Change folder to ${folder}`);
         this.#activateFolder = folder;
         await this.syncStatus();
     }
 
     registerUpdateFunction(update: (event: KeyStatusEvent) => void): void {
-        this.#logger.log('Got one update function');
+        this.#logger.info('Got one update function');
         this.#updateFunctions.push(update);
     }
 
@@ -273,11 +290,11 @@ class KeyStatusManager {
 
         await this.syncStatus();
         if (await gpg.isKeyUnlocked(theKey.keygrip)) {
-            this.#logger.log(`Key is already unlocked, skip unlock request`);
+            this.#logger.warn(`Key is already unlocked, skip unlock request`);
             return;
         }
 
-        this.#logger.log(`Try to unlock current key: ${theKey.fingerprint}`);
+        this.#logger.info(`Try to unlock current key: ${theKey.fingerprint}`);
         await gpg.unlockByKey(this.#logger, theKey.keygrip, passphrase);
         await this.syncStatus();
     }

@@ -232,15 +232,10 @@ function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-interface Logger {
-    log(message: string): void;
-}
-
 /**
  * The AssuanClient class is a helper client for Assuan Protocol.
  */
 class AssuanClient {
-    #logger: Logger;
     #socket: net.Socket;
 
     #responseLines: Buffer[] = [];
@@ -253,11 +248,9 @@ class AssuanClient {
      *
      * @remarks User should wait initialize() to complete before sending any command.
      *
-     * @param logger - An object which implement Console interface for debug message.
      * @param socketPath - The file path to GnuPG unix socket.
      */
-    constructor(logger: Logger, socketPath: string) {
-        this.#logger = logger;
+    constructor(socketPath: string) {
 
         this.#socket = net.createConnection(socketPath, () => {
             this.#isConnected = true;
@@ -267,7 +260,6 @@ class AssuanClient {
             const lines = splitLines(data);
             for (const line of lines) {
                 this.#responseLines.push(line);
-                this.#logger.log('Assuan data receive: ' + line.toString('utf8'));
             }
         });
 
@@ -299,7 +291,6 @@ class AssuanClient {
         this.checkError();
 
         const line = request.toBytes();
-        this.#logger.log('Assuan data send: ' + line.toString('utf8'));
         await this.handleSend(Buffer.concat([line, Buffer.from('\n', 'utf8')]));
     }
 
@@ -342,8 +333,6 @@ class AssuanClient {
 
 
 export {
-    Logger,
-
     AssuanClient,
     Request,
     RequestType,
