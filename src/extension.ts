@@ -297,7 +297,7 @@ class KeyStatusManager {
         this.#logger.info(`Try to unlock current key: ${theKey.fingerprint}`);
         // Escape percent character.
         // https://www.gnupg.org/documentation/manuals/assuan/Client-requests.html#Client-requests
-        passphrase.replace(/%/g,'%25');
+        passphrase = passphrase.replace(/%/g,'%25');
         await gpg.unlockByKey(this.#logger, theKey.keygrip, passphrase);
         await this.syncStatus();
     }
