@@ -6,7 +6,7 @@ import * as process from './indicator/process';
 import { Logger } from './indicator/logger';
 
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
-    return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.path);
+    return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.fsPath);
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -67,7 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (!folder) {
             return;
         }
-        await keyStatusManager.changeActivateFolder(folder.uri.path);
+        await keyStatusManager.changeActivateFolder(folder.uri.fsPath);
     }));
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(async (event) => {
         if (vscode.workspace.workspaceFolders === undefined) {
