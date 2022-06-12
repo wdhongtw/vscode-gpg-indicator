@@ -44,7 +44,8 @@ class Request {
 
     static fromRawData(rawData: RequestRawData): Request {
         const request = new Request;
-        request.#bytes = Buffer.concat([Buffer.from('D ', 'utf8'), rawData.bytes]);
+        const encoded = Buffer.from(encodeURI(rawData.bytes.toString('utf8')), 'utf8');
+        request.#bytes = Buffer.concat([Buffer.from('D ', 'utf8'), encoded]);
 
         return request;
     }
@@ -181,7 +182,8 @@ class Response {
     toRawData(): ResponseRawData {
         this.checkType(ResponseType.rawData);
 
-        return new ResponseRawData(this.#bytes.subarray(2));
+        const decoded = Buffer.from(decodeURI(this.#bytes.subarray(2).toString('utf8')), 'utf8');
+        return new ResponseRawData(decoded);
     }
 
     toInformation(): ResponseInformation {
