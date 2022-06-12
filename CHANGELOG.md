@@ -4,6 +4,16 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.6.1] - 2022-03-09
+### Added
+- Add options to control output log level
+### Changed
+- Passphrase no longer shows up in extension output panel
+### Fixed
+- Support passphrases which contain `%` character
+- Use correct folder string representation on Windows
+
+
 ## [0.6.0] - 2022-03-09
 ### Changed
 - Remove the binary tool dependency of `expect`

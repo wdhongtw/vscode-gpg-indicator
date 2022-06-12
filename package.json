@@ -12,7 +12,7 @@
 		"name": "Weida Hong",
 		"url": "https://blog.bitisle.net"
 	},
-	"version": "0.6.0",
+	"version": "0.6.1",
 	"publisher": "wdhongtw",
 	"engines": {
 		"vscode": "^1.45.0"
@@ -47,7 +47,11 @@
 					"type": "string",
 					"default": "info",
 					"description": "Log level for extension log output",
-					"enum": ["error", "warning", "info"]
+					"enum": [
+						"error",
+						"warning",
+						"info"
+					]
 				}
 			}
 		}

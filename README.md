@@ -40,6 +40,8 @@ if you like this extension!! 😸
 
 - `gpgIndicator.statusRefreshInterval`
   - The interval of background key status refresh loop. Default to 30 seconds.
+- `gpgIndicator.outputLogLevel`
+  - The log level for extension log output. Default to `info`.
 
 ## Known Issues
 
@@ -62,6 +64,10 @@ and the key ID is the hex string after the algorithm identifier.
 - `altjx`
 
 ## Release Notes
+
+### 0.6.1
+
+Fix bug for passphrases which contain `%` character and some file system path.
 
 ### 0.6.0
 
