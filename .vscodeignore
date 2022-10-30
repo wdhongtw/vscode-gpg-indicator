@@ -10,8 +10,3 @@
 !CHANGELOG.md
 !LICENSE
 !images/icon-color.png
-
-# Add each dependency library manually.
-# This is a light weight solution to release without bundle tool.
-# see: https://code.visualstudio.com/api/working-with-extensions/bundling-extension
-!node_modules/lookpath
