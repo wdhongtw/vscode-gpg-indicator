@@ -257,7 +257,7 @@ class KeyStatusManager {
             this.#logger.info(`Find key ${keyInfo.fingerprint} for folder ${folder}`);
             this.#keyOfFolders.set(folder, keyInfo);
         } catch (err) {
-            this.#logger.warn(`Can not found key for folder: ${folder}`);
+            this.#logger.warn(`Can not find key information for folder: ${folder}`);
         }
         return;
     }
