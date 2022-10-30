@@ -34,6 +34,9 @@ export async function getSigningKey(project: string): Promise<string> {
 
         let output: string = stdout;
         output = rstrip(output);
+
+        // Some Git/GPG context allow appending exclamation mark to specify exact key match.
+        output = output.replace('!', '');
         return output;
     } catch (error) {
         throw new Error('Fail to get signing key');
