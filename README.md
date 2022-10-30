@@ -65,6 +65,10 @@ and the key ID is the hex string after the algorithm identifier.
 
 ## Release Notes
 
+### 0.6.2
+
+Allow trailing exclamation mark in signing key ID in Git configuration file.
+
 ### 0.6.1
 
 Fix bug for passphrases which contain `%` character and some file system path.

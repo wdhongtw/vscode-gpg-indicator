@@ -4,6 +4,11 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.6.2] - 2022-10-30
+### Fixed
+- Support trailing exclamation mark in singing key ID
+
+
 ## [0.6.1] - 2022-03-09
 ### Added
 - Add options to control output log level
