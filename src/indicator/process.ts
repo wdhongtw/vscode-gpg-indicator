@@ -29,9 +29,11 @@ export function textSpawn(command: string, args: Array<string>, input: string): 
     return new Promise((resolve, reject) => {
         let proc = child.spawn(command, args);
 
-        proc.stdin.on('error', reject);
-        proc.stdin.write(input, 'utf8');
-        proc.stdin.end();
+        if (input) {
+            proc.stdin.on('error', reject);
+            proc.stdin.write(input, 'utf8');
+            proc.stdin.end();
+        }
 
         // setEncoding to force 'data' event returns string
         // see: https://nodejs.org/api/stream.html#stream_readable_setencoding_encoding
