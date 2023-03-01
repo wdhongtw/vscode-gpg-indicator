@@ -22,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(keyStatusItem);
 
     logger.info('Create key status manager');
-    const keyStatusManager = new KeyStatusManager(logger, syncStatusInterval);
+    const keyStatusManager = new KeyStatusManager(logger, syncStatusInterval, context);
     keyStatusManager.syncLoop();
     context.subscriptions.push(keyStatusManager);
 
@@ -35,7 +35,8 @@ export function activate(context: vscode.ExtensionContext) {
         if (passphrase === undefined) { return; }
         try {
             await keyStatusManager.unlockCurrentKey(passphrase);
-            vscode.window.showInformationMessage('Key unlocked.');
+            await context.secrets.store("passphrase", passphrase);
+            vscode.window.showInformationMessage('Key unlocked, and the passphrase is stored SECURELY in the SecretStorage of VSCode.');
         } catch (err) {
             if (err instanceof Error) {
                 vscode.window.showErrorMessage(`Failed to unlock: ${err.message}`);
@@ -108,14 +109,14 @@ class VscodeOutputLogger {
 
     static levelFromString(level: string): LogLevel {
         switch (level) {
-        case "error":
-            return LogLevel.error;
-        case "warning":
-            return LogLevel.warning;
-        case "info":
-            return LogLevel.info;
-        default:
-            throw new Error(`unknown log level: ${level}`);
+            case "error":
+                return LogLevel.error;
+            case "warning":
+                return LogLevel.warning;
+            case "info":
+                return LogLevel.info;
+            default:
+                throw new Error(`unknown log level: ${level}`);
         }
     }
 
@@ -174,7 +175,7 @@ class KeyStatusManager {
      * @param logger - the output logger for debugging logs.
      * @param syncInterval - key status sync interval in seconds.
      */
-    constructor(logger: Logger, syncInterval: number) {
+    constructor(logger: Logger, syncInterval: number, private extensionContext: vscode.ExtensionContext) {
         this.#logger = logger;
         this.#syncInterval = syncInterval;
     }
@@ -206,7 +207,20 @@ class KeyStatusManager {
 
         let newEvent: KeyStatusEvent | undefined;
         try {
-            const isUnlocked = await gpg.isKeyUnlocked(keyInfo.keygrip);
+            let isUnlocked = await gpg.isKeyUnlocked(keyInfo.keygrip);
+            if (!isUnlocked) {
+                const passphrase = await this.extensionContext.secrets.get("passphrase");
+                if (passphrase) {
+                    try {
+                        await this.unlockCurrentKey(passphrase);
+                        vscode.window.showInformationMessage('Key re-unlocked using the SECURELY stored passphrase.');
+                    } catch {
+                        await this.extensionContext.secrets.delete("passphrase");
+                        vscode.window.showInformationMessage('Key re-locked, but the SECURELY stored passphrase is unable to unlock the key, so it has been deleted.');
+                    }
+                    isUnlocked = await gpg.isKeyUnlocked(keyInfo.keygrip);
+                }
+            }
             newEvent = {
                 keyId: keyInfo.fingerprint,
                 isLocked: !isUnlocked,
