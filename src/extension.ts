@@ -108,14 +108,14 @@ class VscodeOutputLogger {
 
     static levelFromString(level: string): LogLevel {
         switch (level) {
-        case "error":
-            return LogLevel.error;
-        case "warning":
-            return LogLevel.warning;
-        case "info":
-            return LogLevel.info;
-        default:
-            throw new Error(`unknown log level: ${level}`);
+            case "error":
+                return LogLevel.error;
+            case "warning":
+                return LogLevel.warning;
+            case "info":
+                return LogLevel.info;
+            default:
+                throw new Error(`unknown log level: ${level}`);
         }
     }
 

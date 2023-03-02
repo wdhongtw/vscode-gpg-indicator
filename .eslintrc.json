@@ -17,7 +17,8 @@
         "no-throw-literal": "warn",
         "semi": "error",
         "no-tabs": "error",
-        "indent": "error",
+        "indent": "off",
+        "@typescript-eslint/indent": "error",
         "tsdoc/syntax": "warn"
     }
 }
