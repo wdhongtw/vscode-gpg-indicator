@@ -23,6 +23,16 @@ signing key, together with a cute icon to tell whether the key is unlocked or no
 
 When you click the indicator, you will be prompted for passphrase to unlock the key.
 
+### Passphrase Cache
+
+In [VS Code 1.53](https://code.visualstudio.com/updates/v1_53#_secrets-api), the [`SecretStorage` api](https://code.visualstudio.com/api/references/vscode-api#ExtensionContext.secrets) was introduced to provide a securely and persistent storage for secrets, information that is sensitive.
+
+You can enable the `gpgIndicator.enableSecurelyPassphraseCache` option to opt-in, if so your passphrase will be cached in the secret storage once you unlock your key.
+
+When your passphrase is cached, your key will be unlocked automatically, so you don't have to manually unlock it.
+
+You can manage your cached passphrase by listing, deleting some or clearing all. When you disable the option, the whole cache will be cleared automatically.
+
 ## Requirements
 
 - Linux environment (It's not been tested on other platform)
@@ -39,9 +49,13 @@ if you like this extension!! 😸
 ## Extension Settings
 
 - `gpgIndicator.statusRefreshInterval`
-  - The interval of background key status refresh loop. Default to 30 seconds.
+  - The interval of background key status refresh loop, in seconds. Default to `30`.
 - `gpgIndicator.outputLogLevel`
-  - The log level for extension log output. Default to `info`.
+  - The log level for extension log output. Default to `"info"`.
+- `gpgIndicator.enableSecurelyPassphraseCache`
+  - Specifies whether to use the `SecretStorage` of the vscode to store your passphrase SECURELY or not. Default to `false`.
+- `gpgIndicator.statusStyle`
+  - Specifies what to show about the current key in the status bar element. Default to `"fingerprintWithUserId"` (Example: `0123456789ABCDEF - Example User <example@example.com>`).
 
 ## Known Issues
 

@@ -1,12 +1,9 @@
 import util = require('util');
+
 const exec = util.promisify(require('child_process').exec);
 // exec with default utf-8 encoding always return stdout as string
 // see: https://nodejs.org/api/child_process.html#child_process_child_process_exec_command_options_callback
 
-
-function rstrip(message: string): string {
-    return message.replace(/\s+$/g, '');
-}
 
 function fromGitBoolean(data: string): boolean {
     // see: https://git-scm.com/docs/git-config#Documentation/git-config.txt-boolean
@@ -33,7 +30,7 @@ export async function getSigningKey(project: string): Promise<string> {
         });
 
         let output: string = stdout;
-        output = rstrip(output);
+        output = output.trimEnd();
 
         // Some Git/GPG context allow appending exclamation mark to specify exact key match.
         output = output.replace('!', '');
@@ -51,7 +48,7 @@ export async function isSigningActivated(project: string): Promise<boolean> {
         });
 
         let output: string = stdout;
-        output = rstrip(output);
+        output = output.trimEnd();
         return fromGitBoolean(output);
     } catch (error) {
         throw new Error('Fail to test whether signing is activated');
