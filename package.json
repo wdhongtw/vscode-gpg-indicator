@@ -15,24 +15,67 @@
     "version": "0.6.2",
     "publisher": "wdhongtw",
     "engines": {
-        "vscode": "^1.45.0"
+        "vscode": "^1.53.0"
     },
     "categories": [
         "Other"
     ],
     "icon": "images/icon-color.png",
     "activationEvents": [
-        "workspaceContains:/.git"
+        "workspaceContains:/.git",
+        "onCommand:gpgIndicator.unlockCurrentKey",
+        "onCommand:gpgIndicator.deletePassphraseCache",
+        "onCommand:gpgIndicator.clearPassphraseCache",
+        "onCommand:gpgIndicator.listPassphraseCache"
     ],
-    "main": "./out/extension.js",
+    "main": "./dist/extension.js",
+    "l10n": "./l10n",
     "contributes": {
         "commands": [
             {
                 "command": "gpgIndicator.unlockCurrentKey",
-                "title": "Unlock Current Key",
-                "category": "GPG"
+                "title": "%gpgIndicator.l10n.commands.unlockCurrentKey%",
+                "category": "GPG",
+                "icon": "$(unlock)"
+            },
+            {
+                "command": "gpgIndicator.deletePassphraseCache",
+                "title": "%gpgIndicator.l10n.commands.deletePassphraseCache%",
+                "category": "GPG",
+                "icon": "$(close)"
+            },
+            {
+                "command": "gpgIndicator.clearPassphraseCache",
+                "title": "%gpgIndicator.l10n.commands.clearPassphraseCache%",
+                "category": "GPG",
+                "icon": "$(clear-all)"
+            },
+            {
+                "command": "gpgIndicator.listPassphraseCache",
+                "title": "%gpgIndicator.l10n.commands.listPassphraseCache%",
+                "category": "GPG",
+                "icon": "$(list-unordered)"
             }
         ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "gpgIndicator.unlockCurrentKey"
+                },
+                {
+                    "command": "gpgIndicator.deletePassphraseCache",
+                    "when": "config.gpgIndicator.enableSecurelyPassphraseCache"
+                },
+                {
+                    "command": "gpgIndicator.listPassphraseCache",
+                    "when": "config.gpgIndicator.enableSecurelyPassphraseCache"
+                },
+                {
+                    "command": "gpgIndicator.clearPassphraseCache",
+                    "when": "config.gpgIndicator.enableSecurelyPassphraseCache"
+                }
+            ]
+        },
         "configuration": {
             "title": "GPG Indicator",
             "properties": {
@@ -40,16 +83,32 @@
                     "type": "number",
                     "default": 30,
                     "minimum": 1,
-                    "description": "Background refresh interval (in seconds) for key status."
+                    "markdownDescription": "%gpgIndicator.l10n.configuration.statusRefreshInterval%"
                 },
                 "gpgIndicator.outputLogLevel": {
                     "type": "string",
                     "default": "info",
-                    "description": "Log level for extension log output",
+                    "markdownDescription": "%gpgIndicator.l10n.configuration.outputLogLevel%",
                     "enum": [
                         "error",
                         "warning",
                         "info"
+                    ]
+                },
+                "gpgIndicator.enableSecurelyPassphraseCache": {
+                    "type": "boolean",
+                    "default": "false",
+                    "markdownDescription": "%gpgIndicator.l10n.configuration.enableSecurelyPassphraseCache%"
+                },
+                "gpgIndicator.statusStyle": {
+                    "type": "string",
+                    "default": "fingerprintWithUserId",
+                    "markdownDescription": "%gpgIndicator.l10n.configuration.statusStyle%",
+                    "enum": [ "fingerprintWithUserId", "fingerprint", "userId" ],
+                    "markdownEnumDescriptions": [
+                        "%gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprintWithUserId%",
+                        "%gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprint%",
+                        "%gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.userId%"
                     ]
                 }
             }
@@ -62,10 +121,12 @@
         "watch": "tsc -watch -p ./"
     },
     "devDependencies": {
+        "@types/async-lock": "^1.4.0",
         "@types/node": "^18.14.2",
         "@types/vscode": "^1.45.0",
         "@typescript-eslint/eslint-plugin": "^5.2.0",
         "@typescript-eslint/parser": "^5.2.0",
+        "@vscode/l10n-dev": "^0.0.23",
         "eslint": "^8.1.0",
         "eslint-plugin-tsdoc": "^0.2.14",
         "typescript": "^4.9.5"
@@ -75,5 +136,8 @@
         "type": "git",
         "url": "https://github.com/wdhongtw/vscode-gpg-indicator"
     },
-    "preview": false
+    "preview": false,
+    "dependencies": {
+        "async-lock": "^1.4.0"
+    }
 }

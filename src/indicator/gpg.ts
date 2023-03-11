@@ -1,12 +1,13 @@
 import * as process from './process';
 import * as assuan from './assuan';
-import { Logger } from './logger';
+import type { VscodeOutputLogger } from '../logger';
 
 export interface GpgKeyInfo {
     type: string;
     capabilities: string;
     fingerprint: string;
     keygrip: string;
+    userId?: string;
 }
 
 /**
@@ -30,7 +31,7 @@ async function getSocketPath(): Promise<string> {
  * @param passphrase - The passphrase of the key.
  * @param sha1Hash - The hash string to be signed.
  */
-async function sign(logger: Logger, socketPath: string, keygrip: string, passphrase: string, sha1Hash: string): Promise<void> {
+async function sign(logger: VscodeOutputLogger, socketPath: string, keygrip: string, passphrase: string, sha1Hash: string): Promise<void> {
     let response: assuan.Response;
 
     const agent = new assuan.AssuanClient(socketPath);
@@ -102,23 +103,23 @@ function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
      * group 1: pub or sub, 2: ability (E S C A), 3: fingerprint 4. keygrip
      * For more information, see https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=blob_plain;f=doc/DETAILS
      */
-    let pattern: RegExp = /(pub|sub):(?:[^:]*:){10}([escaD?]+)\w*:(?:[^:]*:)*?\n(?:fpr|fp2):(?:[^:]*:){8}(\w*):(?:[^:]*:)*?\ngrp:(?:[^:]*:){8}(\w*):(?:[^:]*:)*?/g;
+    let pattern: RegExp = /(pub|sub):(?:[^:]*:){10}([escaD?]+)\w*:(?:[^:]*:)*?\n(?:fpr|fp2):(?:[^:]*:){8}(\w*):(?:[^:]*:)*?\ngrp:(?:[^:]*:){8}(\w*):(?:[^:]*:)*?(?:\nuid:(?:[^:]*:){8}([^:]*):(?:[^:]*:)*?)?/g;
 
     let infos: Array<GpgKeyInfo> = [];
     let matched: RegExpExecArray | null;
     while ((matched = pattern.exec(rawText)) !== null) {
-        let info = {
+        let info: GpgKeyInfo = {
             type: matched[1],
             capabilities: matched[2],
             fingerprint: matched[3],
             keygrip: matched[4],
+            userId: matched[5],
         };
         infos.push(info);
     }
 
     return infos;
 }
-
 
 export async function isKeyUnlocked(keygrip: string): Promise<boolean> {
     let outputs = await process.textSpawn('gpg-connect-agent', [], `KEYINFO ${keygrip}`);
@@ -146,23 +147,34 @@ export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
 }
 
 /**
- * Get key information of given ID of GPG key.
+ * Get key information of all GPG key.
  *
  * Caller should cache the results from this function whenever possible.
  *
- * @param keyId - ID of the GPG key
  * @returns key information
  */
-export async function getKeyInfo(keyId: string): Promise<GpgKeyInfo> {
+
+export async function getKeyInfos(): Promise<GpgKeyInfo[]> {
     /**
      * --fingerprint flag is given twice to get fingerprint of subkey
      * --with-colon flag is given to get the key information in a more machine-readable manner
      * For more information, see https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=blob_plain;f=doc/DETAILS
      */
     let keyInfoRaw: string = await process.textSpawn('gpg', ['--fingerprint', '--fingerprint', '--with-keygrip', '--with-colon'], '');
-    let infos = parseGpgKey(keyInfoRaw);
+    return parseGpgKey(keyInfoRaw);
+}
 
-    for (let info of infos) {
+/**
+ * Get key information of given ID of GPG key.
+ *
+ * Caller should cache the results from this function whenever possible.
+ *
+ * @param keyId - ID of the GPG key
+ * @param keyInfos - If caller already had the cache, the cache should be passed to avoid duplicated `getKeyInfos()`
+ * @returns key information
+ */
+export async function getKeyInfo(keyId: string, keyInfos?: GpgKeyInfo[]): Promise<GpgKeyInfo> {
+    for (let info of (Array.isArray(keyInfos) ? keyInfos : await getKeyInfos())) {
         // GPG signing key is usually given as shorter ID
         if (info.fingerprint.includes(keyId)) {
             return info;
@@ -181,7 +193,7 @@ const SHA1_EMPTY_DIGEST = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
  * @param keygrip - The keygrip of the key to be unlocked
  * @param passphrase - The passphrase for the key.
  */
-export async function unlockByKey(logger: Logger, keygrip: string, passphrase: string): Promise<void> {
+export async function unlockByKey(logger: VscodeOutputLogger, keygrip: string, passphrase: string): Promise<void> {
     const socketPath = await getSocketPath();
 
     // Hash value is not important here, the only requirement is the length of the hash value.
