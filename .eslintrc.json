@@ -10,7 +10,16 @@
         "eslint-plugin-tsdoc"
     ],
     "rules": {
-        "@typescript-eslint/naming-convention": "warn",
+        "@typescript-eslint/naming-convention": [
+            "warn",
+            {
+                "selector": "objectLiteralProperty",
+                "format": [
+                    "camelCase",
+                    "UPPER_CASE"
+                ]
+            }
+        ],
         "@typescript-eslint/semi": "warn",
         "curly": "warn",
         "eqeqeq": "warn",

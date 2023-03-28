@@ -1,6 +1,8 @@
 {
     "actionYes": "Yes",
     "actionNo": "No",
+    "actionDonotAskAgain": "Don't ask again",
+    "actionOK": "OK",
     "separator": ", ",
     "noKeyInCurrentFolder": "Unable to retrieve any key in current folder.",
     "passphraseInputPromptTitle": "Input the passphrase for the signing key",
@@ -28,5 +30,8 @@
     "keyChanged": "Key changed.",
     "keyRelocked": "Key re-locked.",
     "noActiveFolder": "No active folder",
-    "noKeyForCurrentFolder": "No key for current folder"
+    "noKeyForCurrentFolder": "No key for current folder",
+    "enableSecurelyPassphraseCacheNotice": "GPG Indicator come with [New passphrase cache feature](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache), would you like to enable this feature?",
+    "enableSecurelyPassphraseCacheNoticeForbidden": "OK, you can configure it later in setting [gpgIndicator.enableSecurelyPassphraseCache](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22).",
+    "enableSecurelyPassphraseCacheNoticeAggred": "OK, this feature has been enabled, you can configure it later in setting [gpgIndicator.enableSecurelyPassphraseCache](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)."
 }

@@ -3,9 +3,10 @@
 **
 
 # Current output folder of TypeScript is out
-!out/extension.js
-!out/indicator/**/*.js
+!dist/
+!l10n/
 !package.json
+!package.*.json
 !README.md
 !CHANGELOG.md
 !LICENSE
