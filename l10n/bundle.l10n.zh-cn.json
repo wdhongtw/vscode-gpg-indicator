@@ -1,6 +1,8 @@
 {
     "actionYes": "是",
     "actionNo": "否",
+    "actionDonotAskAgain": "不再询问",
+    "actionOK": "好的",
     "separator": "、",
     "noKeyInCurrentFolder": "无法检索当前文件夹中的任何密钥。",
     "passphraseInputPromptTitle": "输入密钥密码",
@@ -28,5 +30,8 @@
     "keyChanged": "密钥已变更。",
     "keyRelocked": "密钥被自动锁定。",
     "noActiveFolder": "当前无活动中的文件夹。",
-    "noKeyForCurrentFolder": "当前文件夹无关联密钥。"
+    "noKeyForCurrentFolder": "当前文件夹无关联密钥。",
+    "enableSecurelyPassphraseCacheNotice": "GPG Indicator 新增了[密码安全存储功能](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache)，您是否希望开启这项功能？",
+    "enableSecurelyPassphraseCacheNoticeForbidden": "好的，您可以稍后在设置的 [gpgIndicator.enableSecurelyPassphraseCache 处](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)启用这项功能。",
+    "enableSecurelyPassphraseCacheNoticeAggred": "好的，该功能已启用，您可以稍后在设置的 [gpgIndicator.enableSecurelyPassphraseCache 处](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)管理这项功能。"
 }

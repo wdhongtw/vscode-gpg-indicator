@@ -1,4 +1,4 @@
-import util = require('util');
+import * as util from 'util';
 
 const exec = util.promisify(require('child_process').exec);
 // exec with default utf-8 encoding always return stdout as string

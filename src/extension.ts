@@ -1,14 +1,19 @@
 import * as vscode from 'vscode';
 
-import * as git from './indicator/git';
 import * as gpg from './indicator/gpg';
-import * as process from './indicator/process';
 import { VscodeOutputLogger } from './logger';
-import SecretObjectStorage from "./SecretObjectStorage";
-import locker from "./indicator/locker";
+import SecretObjectStorage from "./ObjectStorages/SecretObjectStorage";
+import MementoObjectStorage from "./ObjectStorages/MementoObjectStorage";
+import KeyStatusManager from "./KeyStatusManager";
 
-const YES = vscode.l10n.t("actionYes");
-const NO = vscode.l10n.t("actionNo");
+type statusStyleEnum = "fingerprintWithUserId" | "fingerprint" | "userId";
+
+const actions = {
+    YES: vscode.l10n.t("actionYes"),
+    NO: vscode.l10n.t("actionNo"),
+    DONOT_ASK_AGAIN: vscode.l10n.t("actionDonotAskAgain"),
+    OK: vscode.l10n.t("actionOK"),
+};
 
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
     return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.fsPath);
@@ -19,7 +24,7 @@ function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
  * @returns When no cached passphrase found, return `false`, otherwise return `vscode.QuickPickItem[]`
  */
 async function generateKeyList(secretStorage: SecretObjectStorage, keyStatusManager: KeyStatusManager): Promise<false | vscode.QuickPickItem[]> {
-    const list = Object.keys(await secretStorage.getAll());
+    const list = await secretStorage.keys();
     if (list.length === 0) {
         vscode.window.showInformationMessage(vscode.l10n.t('noCachedPassphrase'));
         return false;
@@ -70,7 +75,8 @@ export async function activate(context: vscode.ExtensionContext) {
     const logger = new VscodeOutputLogger('GPG Indicator', logLevel);
     const syncStatusInterval = configuration.get<number>('statusRefreshInterval', 30);
     const secretStorage = new SecretObjectStorage(context.secrets, logger);
-    let statusStyle: "fingerprintWithUserId" | "fingerprint" | "userId" = configuration.get('statusStyle', "fingerprintWithUserId");
+    const mementoObjectStorage = new MementoObjectStorage(context.globalState, logger);
+    let statusStyle: statusStyleEnum = configuration.get<statusStyleEnum>('statusStyle', "fingerprintWithUserId");
 
     logger.info('Active GPG Indicator extension ...');
     logger.info(`Setting: sync status interval: ${syncStatusInterval}`);
@@ -105,13 +111,45 @@ export async function activate(context: vscode.ExtensionContext) {
         if (passphrase === undefined) { return; }
         try {
             await keyStatusManager.unlockCurrentKey(passphrase);
+            await keyStatusManager.syncStatus();
             if (keyStatusManager.enableSecurelyPassphraseCache) {
                 await secretStorage.set(keyStatusManager.currentKey.fingerprint, passphrase);
                 vscode.window.showInformationMessage(vscode.l10n.t('keyUnlockedWithCachedPassphrase'));
             } else {
                 vscode.window.showInformationMessage(vscode.l10n.t('keyUnlocked'));
+                const enableSecurelyPassphraseCacheNotice = !!(await mementoObjectStorage.get("enableSecurelyPassphraseCacheNotice"));
+                if (!enableSecurelyPassphraseCacheNotice) {
+                    const result = await vscode.window.showInformationMessage<string>(
+                        vscode.l10n.t("enableSecurelyPassphraseCacheNotice"),
+                        actions.YES,
+                        actions.NO,
+                        actions.DONOT_ASK_AGAIN,
+                    ) || actions.NO;
+                    if (result === actions.NO) {
+                        return;
+                    }
+                    await mementoObjectStorage.set("enableSecurelyPassphraseCacheNotice", true);
+                    if (result === actions.YES) {
+                        configuration.update("enableSecurelyPassphraseCache", true, true);
+                        // Due to the fact that vscode automatically collapses ordinary notifications into one line,
+                        // causing `enableSecurelyPassphraseCache` setting links to be collapsed,
+                        // notifications with options are used instead to avoid being collapsed.
+                        await vscode.window.showInformationMessage<string>(
+                            vscode.l10n.t("enableSecurelyPassphraseCacheNoticeAggred"),
+                            actions.OK,
+                        );
+                        return;
+                    }
+                    if (result === actions.DONOT_ASK_AGAIN) {
+                        // Same as the reason above.
+                        vscode.window.showInformationMessage<string>(
+                            vscode.l10n.t('enableSecurelyPassphraseCacheNoticeForbidden'),
+                            actions.OK,
+                        );
+                        return;
+                    }
+                }
             }
-            await keyStatusManager.syncStatus();
         } catch (err) {
             if (err instanceof Error) {
                 vscode.window.showErrorMessage(vscode.l10n.t('keyUnlockFailed', err.message));
@@ -159,16 +197,16 @@ export async function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand("gpgIndicator.clearPassphraseCache", async () => {
-        if (Object.entries(await secretStorage.getAll()).length === 0) {
+        if ((await secretStorage.entries()).length === 0) {
             vscode.window.showInformationMessage(vscode.l10n.t('noCachedPassphrase'));
             return;
         }
         if ((await vscode.window.showInformationMessage<vscode.MessageItem>(
             vscode.l10n.t("passphraseClearanceConfirm"),
             { modal: true },
-            { title: YES },
-            { title: NO, isCloseAffordance: true },
-        ))?.title !== YES) {
+            { title: actions.YES },
+            { title: actions.NO, isCloseAffordance: true },
+        ))?.title !== actions.YES) {
             return;
         }
         await secretStorage.clear();
@@ -222,7 +260,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         keyStatusManager.enableSecurelyPassphraseCache = newEnableSecurelyPassphraseCache;
         const oldStatusStyle = statusStyle;
-        statusStyle = configuration.get('statusStyle', "fingerprintWithUserId");
+        statusStyle = configuration.get<statusStyleEnum>('statusStyle', "fingerprintWithUserId");
         if (oldStatusStyle !== statusStyle) {
             updateKeyStatus();
         }
@@ -260,236 +298,3 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() { }
-
-class KeyStatusEvent {
-    constructor(public keyId: string, public isLocked: boolean) {
-    }
-
-    static equal(left: KeyStatusEvent, right: KeyStatusEvent): boolean {
-        return left.keyId === right.keyId && left.isLocked === right.isLocked;
-    }
-}
-
-class KeyStatusManager {
-    private activateFolder: string | undefined;
-    private lastEvent: KeyStatusEvent | undefined;
-    private keyOfFolders: Map<string, gpg.GpgKeyInfo> = new Map();
-    private disposed: boolean = false;
-    private updateFunctions: ((event?: KeyStatusEvent) => void)[] = [];
-    public isUnlocked = false;
-    private isUnlockedPrevious = false;
-
-    /**
-     * Construct the key status manager.
-     *
-     * @param logger - the output logger for debugging logs.
-     * @param syncInterval - key status sync interval in seconds.
-     */
-    constructor(
-        private logger: VscodeOutputLogger,
-        private syncInterval: number,
-        private secretStorage: SecretObjectStorage,
-        public enableSecurelyPassphraseCache: boolean,
-    ) { }
-
-    async syncLoop(): Promise<void> {
-        await process.sleep(1 * 1000);
-        while (!this.disposed) {
-            if (this.activateFolder) {
-                await this.syncStatus();
-            }
-            await process.sleep(this.syncInterval * 1000);
-        }
-        return;
-    }
-
-    updateSyncInterval(syncInterval: number): void {
-        this.syncInterval = syncInterval;
-    }
-
-    async syncStatus(): Promise<void> {
-        await locker.acquire("KeyStatusManager#syncStatus", async (release) => {
-            if (!this.activateFolder) {
-                return release();
-            }
-            const oldCurrentKey = this.currentKey;
-            const shouldParseKey = await git.isSigningActivated(this.activateFolder);
-            if (shouldParseKey) {
-                const keyId = await git.getSigningKey(this.activateFolder);
-                if (!oldCurrentKey?.fingerprint.includes(keyId)) {
-                    const keyInfo = await gpg.getKeyInfo(keyId);
-                    this.logger.info(`Find updated key ${keyId} / ${keyInfo.fingerprint} from ${oldCurrentKey?.fingerprint} for current folder ${this.activateFolder}`);
-                    this.keyOfFolders.set(this.activateFolder, keyInfo);
-                }
-            } else {
-                this.currentKey = undefined;
-            }
-            if (this.currentKey === undefined) {
-                if (oldCurrentKey) {
-                    this.logger.info('User disabled commit signning or removed the key for current folder, trigger status update functions');
-                    for (const update of this.updateFunctions) {
-                        update();
-                    }
-                }
-                return release();
-            }
-
-            let newEvent: KeyStatusEvent | undefined;
-            try {
-                this.isUnlocked = await gpg.isKeyUnlocked(this.currentKey.keygrip);
-                if (this.enableSecurelyPassphraseCache) {
-                    if (!this.isUnlocked) {
-                        const passphrase = await this.secretStorage.get(this.currentKey.fingerprint);
-                        if (typeof passphrase === "string") {
-                            try {
-                                await this.unlockCurrentKey(passphrase);
-                                if (this.isUnlockedPrevious) {
-                                    vscode.window.showInformationMessage(
-                                        this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t('keyChangedAndAutomaticallyUnlocked')
-                                            : vscode.l10n.t('keyRelockedAndAutomaticallyUnlocked'),
-                                    );
-                                } else {
-                                    vscode.window.showInformationMessage(
-                                        this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t('keyChangedAndAutomaticallyUnlocked')
-                                            : vscode.l10n.t('keyAutomaticallyUnlocked'),
-                                    );
-                                }
-                            } catch (e) {
-                                this.logger.error(`Cannot unlock the key with the cached passphrase: ${e instanceof Error ? e.message : JSON.stringify(e, null, 4)}`);
-                                await this.secretStorage.delete(this.currentKey.fingerprint);
-                                if (this.isUnlockedPrevious) {
-                                    vscode.window.showInformationMessage(
-                                        this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t('keyChangedButAutomaticallyUnlockFailed')
-                                            : vscode.l10n.t('keyRelockedButAutomaticallyUnlockFailed'),
-                                    );
-                                } else {
-                                    vscode.window.showInformationMessage(
-                                        this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t('keyChangedButAutomaticallyUnlockFailed')
-                                            : vscode.l10n.t('keyAutomaticallyUnlockFailed'),
-                                    );
-                                }
-                            }
-                            this.isUnlocked = await gpg.isKeyUnlocked(this.currentKey.keygrip);
-                        }
-                    }
-                } else if (this.isUnlockedPrevious && !this.isUnlocked) {
-                    vscode.window.showInformationMessage(
-                        this.currentKey === oldCurrentKey
-                            ? vscode.l10n.t('keyChanged')
-                            : vscode.l10n.t('keyRelocked'),
-                    );
-                }
-                newEvent = new KeyStatusEvent(this.currentKey.fingerprint, !this.isUnlocked);
-            } catch (err) {
-                if (!(err instanceof Error)) {
-                    throw err;
-                }
-                this.isUnlocked = false;
-                this.logger.error(`Fail to check key status: ${err.message}`);
-            }
-            this.isUnlockedPrevious = this.isUnlocked;
-
-            if (newEvent === undefined) {
-                return release();
-            }
-            if (this.lastEvent === undefined || !KeyStatusEvent.equal(newEvent, this.lastEvent)) {
-                this.lastEvent = newEvent;
-                this.notifyUpdate(newEvent);
-            }
-            release();
-        });
-    }
-
-    private notifyUpdate(event: KeyStatusEvent): void {
-        this.logger.info(`New event, key: ${event.keyId}, is locked: ${event.isLocked}`);
-        this.logger.info('Trigger status update functions');
-        for (const update of this.updateFunctions) {
-            update(event);
-        }
-    }
-
-    // Update workspace folders
-    async updateFolders(folders: string[]): Promise<void> {
-        this.logger.info('Update folder information');
-        this.keyOfFolders.clear();
-        const keyInfos = await gpg.getKeyInfos();
-        for (const folder of folders) {
-            await this.updateFolder(folder, keyInfos);
-        }
-    }
-
-    private async updateFolder(folder: string, keyInfos?: gpg.GpgKeyInfo[]): Promise<void> {
-        await locker.acquire("KeyStatusManager#updateFolder", async (release) => {
-            try {
-                const shouldParseKey = await git.isSigningActivated(folder);
-                if (!shouldParseKey) {
-                    return release();
-                }
-                const keyId = await git.getSigningKey(folder);
-                const keyInfo = await gpg.getKeyInfo(keyId, keyInfos);
-                this.logger.info(`Find key ${keyInfo.fingerprint} for folder ${folder}`);
-                this.keyOfFolders.set(folder, keyInfo);
-            } catch (err) {
-                this.logger.warn(`Can not find key information for folder: ${folder}`);
-            }
-            release();
-        });
-    }
-
-    // Change current key according to activate folder
-    async changeActivateFolder(folder: string): Promise<void> {
-        if (this.activateFolder === folder) {
-            return;
-        }
-        this.logger.info(`Change folder to ${folder}`);
-        this.activateFolder = folder;
-        await this.syncStatus();
-    }
-
-    registerUpdateFunction(update: (event?: KeyStatusEvent) => void): void {
-        this.logger.info('Got one update function');
-        this.updateFunctions.push(update);
-    }
-
-    get currentKey() {
-        return this.activateFolder ? this.keyOfFolders.get(this.activateFolder) : undefined;
-    }
-
-    set currentKey(keyInfo: gpg.GpgKeyInfo | undefined) {
-        if (this.activateFolder) {
-            if (keyInfo) {
-                this.keyOfFolders.set(this.activateFolder, keyInfo);
-            } else {
-                this.keyOfFolders.delete(this.activateFolder);
-            }
-        }
-    }
-
-    // Lock or unlock current key
-    async unlockCurrentKey(passphrase: string): Promise<void> {
-        if (this.activateFolder === undefined) {
-            throw new Error(vscode.l10n.t('noActiveFolder'));
-        }
-
-        if (this.currentKey === undefined) {
-            throw new Error(vscode.l10n.t('noKeyForCurrentFolder'));
-        }
-
-        if (await gpg.isKeyUnlocked(this.currentKey.keygrip)) {
-            this.logger.warn(`Key is already unlocked, skip unlock request`);
-            return;
-        }
-
-        this.logger.info(`Try to unlock current key: ${this.currentKey.fingerprint}`);
-        await gpg.unlockByKey(this.logger, this.currentKey.keygrip, passphrase);
-    }
-
-    // Stop sync key status loop
-    dispose(): void {
-        this.disposed = true;
-    }
-}
