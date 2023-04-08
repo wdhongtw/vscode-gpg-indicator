@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import * as fs from "fs";
+import { tmpdir } from "os";
+import * as path from "path";
 
 import * as gpg from './indicator/gpg';
 import { VscodeOutputLogger } from './logger';
@@ -14,6 +17,9 @@ const actions = {
     DONOT_ASK_AGAIN: vscode.l10n.t("actionDonotAskAgain"),
     OK: vscode.l10n.t("actionOK"),
 };
+
+const tmp = fs.mkdtempSync(path.join(tmpdir(), "gpgIndicator-"));
+fs.chmod(tmp, 0o544, () => { });
 
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
     return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.fsPath);
@@ -90,8 +96,14 @@ export async function activate(context: vscode.ExtensionContext) {
         syncStatusInterval,
         secretStorage,
         configuration.get<boolean>('enableSecurelyPassphraseCache', false),
+        vscode.workspace.isTrusted,
+        tmp,
     );
     context.subscriptions.push(keyStatusManager);
+
+    vscode.workspace.onDidGrantWorkspaceTrust(() => {
+        keyStatusManager.recoverActivateFolderOnDidGrantWorkspaceTrust();
+    });
 
     const commandId = 'gpgIndicator.unlockCurrentKey';
     context.subscriptions.push(vscode.commands.registerCommand(commandId, async () => {
@@ -297,4 +309,9 @@ export async function activate(context: vscode.ExtensionContext) {
     keyStatusManager.syncLoop();
 }
 
-export function deactivate() { }
+export async function deactivate() {
+    await fs.promises.rm(tmp, {
+        recursive: true,
+        force: true,
+    });
+}

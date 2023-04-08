@@ -18,6 +18,7 @@ class KeyStatusEvent {
 
 export default class KeyStatusManager {
     private activateFolder: string | undefined;
+    private _activateFolder: string | undefined;
     private lastEvent: KeyStatusEvent | undefined;
     private keyOfFolders: Map<string, gpg.GpgKeyInfo> = new Map();
     private disposed: boolean = false;
@@ -36,6 +37,8 @@ export default class KeyStatusManager {
         private syncInterval: number,
         private secretStorage: SecretObjectStorage,
         public enableSecurelyPassphraseCache: boolean,
+        private isWorkspaceTrusted: boolean,
+        private tmp: string,
     ) { }
 
     async syncLoop(): Promise<void> {
@@ -64,7 +67,7 @@ export default class KeyStatusManager {
                 const keyId = await git.getSigningKey(this.activateFolder);
                 if (!oldCurrentKey?.fingerprint.includes(keyId)) {
                     const keyInfo = await gpg.getKeyInfo(keyId);
-                    this.logger.info(`Find updated key ${keyId} / ${keyInfo.fingerprint} from ${oldCurrentKey?.fingerprint} for current folder ${this.activateFolder}`);
+                    this.logger.info(`Find updated key ${keyId} / ${keyInfo.fingerprint} from old key ${oldCurrentKey?.fingerprint} for current folder ${this.activateFolder}`);
                     this.keyOfFolders.set(this.activateFolder, keyInfo);
                 }
             } else {
@@ -188,12 +191,27 @@ export default class KeyStatusManager {
 
     // Change current key according to activate folder
     async changeActivateFolder(folder: string): Promise<void> {
+        this._activateFolder = folder;
+        if (!this.isWorkspaceTrusted) {
+            this.logger.info(`Running in restricted mode for an untrusted workspace, ${folder} will not be used, ${this.tmp} instead.`);
+            folder = this.tmp;
+        }
         if (this.activateFolder === folder) {
             return;
         }
         this.logger.info(`Change folder to ${folder}`);
         this.activateFolder = folder;
         await this.syncStatus();
+    }
+
+    async recoverActivateFolderOnDidGrantWorkspaceTrust(): Promise<void> {
+        this.isWorkspaceTrusted = true;
+        if (typeof this._activateFolder !== "string") {
+            this.logger.info(`The workspace has been granted trust, but no folder passed in before.`);
+            return;
+        }
+        this.logger.info(`The workspace has been granted trust, ${this._activateFolder} will be used.`);
+        await this.changeActivateFolder(this._activateFolder);
     }
 
     registerUpdateFunction(update: (event?: KeyStatusEvent) => void): void {

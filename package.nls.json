@@ -9,5 +9,6 @@
     "gpgIndicator.l10n.configuration.statusStyle": "Specifies what to show about the current key in the status bar element",
     "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprintWithUserId": "Show both fingerprint and user id (if any), if no user id found, show fingerprint only.\n\nExample: `0123456789ABCDEF - Example User <example@example.com>`",
     "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprint": "Show fingerprint only.\n\nExample: `0123456789ABCDEF`",
-    "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.userId": "Show user id, if no user id found, show fingerprint as fallback.\n\nExample: `Example User <example@example.com>`"
+    "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.userId": "Show user id, if no user id found, show fingerprint as fallback.\n\nExample: `Example User <example@example.com>`",
+    "gpgIndicator.l10n.capabilities.untrustedWorkspaces": "When running in restricted mode for an untrusted workspace, the extension will not read any git config from current folder."
 }
