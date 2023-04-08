@@ -75,7 +75,7 @@ export default class KeyStatusManager {
             }
             if (this.currentKey === undefined) {
                 if (oldCurrentKey) {
-                    this.logger.info('User disabled commit signning or removed the key for current folder, trigger status update functions');
+                    this.logger.info('User disabled commit signing or removed the key for current folder, trigger status update functions');
                     for (const update of this.updateFunctions) {
                         update();
                     }
