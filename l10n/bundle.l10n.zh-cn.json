@@ -1,7 +1,7 @@
 {
     "actionYes": "是",
     "actionNo": "否",
-    "actionDonotAskAgain": "不再询问",
+    "actionDoNotAskAgain": "不再询问",
     "actionOK": "好的",
     "separator": "、",
     "noKeyInCurrentFolder": "无法检索当前文件夹中的任何密钥。",
@@ -20,7 +20,7 @@
     "restKey": "其他密钥",
     "cachedPassphraseList": "已存储密码的密钥列表：",
     "passphraseClearanceConfirm": "您确认真的要删除您存储中的全部密码吗？\n该操作无法被撤销。",
-    "passphraseCeared": "您的全部密码已被从机密存储区中删除。",
+    "passphraseCleared": "您的全部密码已被从机密存储区中删除。",
     "keyChangedAndAutomaticallyUnlocked": "密钥已变更，并被通过机密存储区中的关联密码自动解锁。",
     "keyRelockedAndAutomaticallyUnlocked": "密钥被自动锁定，现已被通过机密存储区中的关联密码自动解锁。",
     "keyAutomaticallyUnlocked": "密钥已被通过机密存储区中的关联密码自动解锁。",
@@ -33,5 +33,5 @@
     "noKeyForCurrentFolder": "当前文件夹无关联密钥。",
     "enableSecurelyPassphraseCacheNotice": "GPG Indicator 新增了[密码安全存储功能](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache)，您是否希望开启这项功能？",
     "enableSecurelyPassphraseCacheNoticeForbidden": "好的，您可以稍后在设置的 [gpgIndicator.enableSecurelyPassphraseCache 处](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)启用这项功能。",
-    "enableSecurelyPassphraseCacheNoticeAggred": "好的，该功能已启用，您可以稍后在设置的 [gpgIndicator.enableSecurelyPassphraseCache 处](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)管理这项功能。"
+    "enableSecurelyPassphraseCacheNoticeAgreed": "好的，该功能已启用，您可以稍后在设置的 [gpgIndicator.enableSecurelyPassphraseCache 处](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)管理这项功能。"
 }

@@ -14,7 +14,7 @@ type statusStyleEnum = "fingerprintWithUserId" | "fingerprint" | "userId";
 const actions = {
     YES: vscode.l10n.t("actionYes"),
     NO: vscode.l10n.t("actionNo"),
-    DONOT_ASK_AGAIN: vscode.l10n.t("actionDonotAskAgain"),
+    DO_NOT_ASK_AGAIN: vscode.l10n.t("actionDoNotAskAgain"),
     OK: vscode.l10n.t("actionOK"),
 };
 
@@ -135,7 +135,7 @@ export async function activate(context: vscode.ExtensionContext) {
                         vscode.l10n.t("enableSecurelyPassphraseCacheNotice"),
                         actions.YES,
                         actions.NO,
-                        actions.DONOT_ASK_AGAIN,
+                        actions.DO_NOT_ASK_AGAIN,
                     ) || actions.NO;
                     if (result === actions.NO) {
                         return;
@@ -147,12 +147,12 @@ export async function activate(context: vscode.ExtensionContext) {
                         // causing `enableSecurelyPassphraseCache` setting links to be collapsed,
                         // notifications with options are used instead to avoid being collapsed.
                         await vscode.window.showInformationMessage<string>(
-                            vscode.l10n.t("enableSecurelyPassphraseCacheNoticeAggred"),
+                            vscode.l10n.t("enableSecurelyPassphraseCacheNoticeAgreed"),
                             actions.OK,
                         );
                         return;
                     }
-                    if (result === actions.DONOT_ASK_AGAIN) {
+                    if (result === actions.DO_NOT_ASK_AGAIN) {
                         // Same as the reason above.
                         vscode.window.showInformationMessage<string>(
                             vscode.l10n.t('enableSecurelyPassphraseCacheNoticeForbidden'),
@@ -222,7 +222,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
         await secretStorage.clear();
-        vscode.window.showInformationMessage(vscode.l10n.t('passphraseCeared'));
+        vscode.window.showInformationMessage(vscode.l10n.t('passphraseCleared'));
     }));
 
     const updateKeyStatus = () => {
@@ -265,7 +265,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const newEnableSecurelyPassphraseCache = configuration.get<boolean>('enableSecurelyPassphraseCache', false);
         if (keyStatusManager.enableSecurelyPassphraseCache && !newEnableSecurelyPassphraseCache) {
             secretStorage.clear().then(() => {
-                vscode.window.showInformationMessage(vscode.l10n.t('passphraseCeared'));
+                vscode.window.showInformationMessage(vscode.l10n.t('passphraseCleared'));
             }).catch((e) => {
                 logger.error(`Cannot clear the passphrase cache when "enableSecurelyPassphraseCache" turn to off: ${e instanceof Error ? e.message : JSON.stringify(e, null, 4)}`);
             });

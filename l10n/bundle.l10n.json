@@ -1,7 +1,7 @@
 {
     "actionYes": "Yes",
     "actionNo": "No",
-    "actionDonotAskAgain": "Don't ask again",
+    "actionDoNotAskAgain": "Don't ask again",
     "actionOK": "OK",
     "separator": ", ",
     "noKeyInCurrentFolder": "Unable to retrieve any key in current folder.",
@@ -20,7 +20,7 @@
     "restKey": "Rest keys",
     "cachedPassphraseList": "List of keys with stored passphrases:",
     "passphraseClearanceConfirm": "Do you REALLY want to clear ALL your cached passphrase?\nThis action CANNOT be reverted.",
-    "passphraseCeared": "All Your cached passphrase has been cleared.",
+    "passphraseCleared": "All Your cached passphrase has been cleared.",
     "keyChangedAndAutomaticallyUnlocked": "Key changed, and unlocked automatically using the previous-used stored passphrase.",
     "keyRelockedAndAutomaticallyUnlocked": "Key re-locked, and unlocked automatically using the previous-used stored passphrase.",
     "keyAutomaticallyUnlocked": "Key unlocked automatically using the previous-used stored passphrase.",
@@ -33,5 +33,5 @@
     "noKeyForCurrentFolder": "No key for current folder",
     "enableSecurelyPassphraseCacheNotice": "GPG Indicator come with [New passphrase cache feature](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache), would you like to enable this feature?",
     "enableSecurelyPassphraseCacheNoticeForbidden": "OK, you can configure it later in setting [gpgIndicator.enableSecurelyPassphraseCache](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22).",
-    "enableSecurelyPassphraseCacheNoticeAggred": "OK, this feature has been enabled, you can configure it later in setting [gpgIndicator.enableSecurelyPassphraseCache](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)."
+    "enableSecurelyPassphraseCacheNoticeAgreed": "OK, this feature has been enabled, you can configure it later in setting [gpgIndicator.enableSecurelyPassphraseCache](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)."
 }
