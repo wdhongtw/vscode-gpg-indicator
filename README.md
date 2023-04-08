@@ -76,6 +76,8 @@ and the key ID is the hex string after the algorithm identifier.
 - `wdhongtw`
 - `kitos9112`
 - `altjx`
+- `AnnAngela`
+- `mptr`
 
 ## Release Notes
 
