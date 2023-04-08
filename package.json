@@ -15,7 +15,7 @@
     "version": "0.7.0-alpha",
     "publisher": "wdhongtw",
     "engines": {
-        "vscode": "^1.53.0"
+        "vscode": "^1.72.0"
     },
     "categories": [
         "Other"
@@ -138,8 +138,8 @@
     },
     "devDependencies": {
         "@types/async-lock": "^1.4.0",
-        "@types/node": "^18.14.2",
-        "@types/vscode": "^1.45.0",
+        "@types/node": "^16.14.2",
+        "@types/vscode": "^1.72.0",
         "@typescript-eslint/eslint-plugin": "^5.2.0",
         "@typescript-eslint/parser": "^5.2.0",
         "@vscode/l10n-dev": "^0.0.23",
