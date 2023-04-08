@@ -1,4 +1,4 @@
-{
+export const m = {
     "actionYes": "Yes",
     "actionNo": "No",
     "actionDoNotAskAgain": "Don't ask again",
@@ -34,4 +34,4 @@
     "enableSecurelyPassphraseCacheNotice": "GPG Indicator come with [New passphrase cache feature](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache), would you like to enable this feature?",
     "enableSecurelyPassphraseCacheNoticeForbidden": "OK, you can configure it later in setting [gpgIndicator.enableSecurelyPassphraseCache](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22).",
     "enableSecurelyPassphraseCacheNoticeAgreed": "OK, this feature has been enabled, you can configure it later in setting [gpgIndicator.enableSecurelyPassphraseCache](command:workbench.action.openSettings?%22gpgIndicator.enableSecurelyPassphraseCache%22)."
-}
+};

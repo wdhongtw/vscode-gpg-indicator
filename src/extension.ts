@@ -8,14 +8,15 @@ import { VscodeOutputLogger } from './logger';
 import SecretObjectStorage from "./ObjectStorages/SecretObjectStorage";
 import MementoObjectStorage from "./ObjectStorages/MementoObjectStorage";
 import KeyStatusManager from "./KeyStatusManager";
+import { m } from "./message";
 
 type statusStyleEnum = "fingerprintWithUserId" | "fingerprint" | "userId";
 
 const actions = {
-    YES: vscode.l10n.t("actionYes"),
-    NO: vscode.l10n.t("actionNo"),
-    DO_NOT_ASK_AGAIN: vscode.l10n.t("actionDoNotAskAgain"),
-    OK: vscode.l10n.t("actionOK"),
+    YES: vscode.l10n.t(m["actionYes"]),
+    NO: vscode.l10n.t(m["actionNo"]),
+    DO_NOT_ASK_AGAIN: vscode.l10n.t(m["actionDoNotAskAgain"]),
+    OK: vscode.l10n.t(m["actionOK"]),
 };
 
 const tmp = fs.mkdtempSync(path.join(tmpdir(), "gpgIndicator-"));
@@ -32,7 +33,7 @@ function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
 async function generateKeyList(secretStorage: SecretObjectStorage, keyStatusManager: KeyStatusManager): Promise<false | vscode.QuickPickItem[]> {
     const list = await secretStorage.keys();
     if (list.length === 0) {
-        vscode.window.showInformationMessage(vscode.l10n.t('noCachedPassphrase'));
+        vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
         return false;
     }
     const items: vscode.QuickPickItem[] = [];
@@ -43,7 +44,7 @@ async function generateKeyList(secretStorage: SecretObjectStorage, keyStatusMana
     );
     if (keyStatusManager.currentKey?.fingerprint && list.includes(keyStatusManager.currentKey.fingerprint)) {
         items.push({
-            label: vscode.l10n.t("currentKey"),
+            label: vscode.l10n.t(m["currentKey"]),
             alwaysShow: true,
             kind: vscode.QuickPickItemKind.Separator,
         });
@@ -58,7 +59,7 @@ async function generateKeyList(secretStorage: SecretObjectStorage, keyStatusMana
     const restList = list.filter((fingerprint) => fingerprint !== keyStatusManager.currentKey?.fingerprint);
     if (restList.length > 0) {
         items.push({
-            label: vscode.l10n.t("restKey"),
+            label: vscode.l10n.t(m["restKey"]),
             alwaysShow: false,
             kind: vscode.QuickPickItemKind.Separator,
         });
@@ -108,16 +109,16 @@ export async function activate(context: vscode.ExtensionContext) {
     const commandId = 'gpgIndicator.unlockCurrentKey';
     context.subscriptions.push(vscode.commands.registerCommand(commandId, async () => {
         if (!keyStatusManager.currentKey) {
-            vscode.window.showErrorMessage(vscode.l10n.t("noKeyInCurrentFolder"));
+            vscode.window.showErrorMessage(vscode.l10n.t(m["noKeyInCurrentFolder"]));
             return;
         }
         const passphrase = await vscode.window.showInputBox({
             prompt: keyStatusManager.enableSecurelyPassphraseCache
-                ? vscode.l10n.t('passphraseInputPromptTitleWhenSecurelyPassphraseCacheEnabled')
-                : vscode.l10n.t('passphraseInputPromptTitle'),
+                ? vscode.l10n.t(m['passphraseInputPromptTitleWhenSecurelyPassphraseCacheEnabled'])
+                : vscode.l10n.t(m['passphraseInputPromptTitle']),
             password: true,
             placeHolder: keyStatusManager.currentKey.userId
-                ? vscode.l10n.t('keyDescriptionWithUsedId', keyStatusManager.currentKey.userId)
+                ? vscode.l10n.t(m['keyDescriptionWithUsedId'], keyStatusManager.currentKey.userId)
                 : undefined,
         });
         if (passphrase === undefined) { return; }
@@ -126,13 +127,13 @@ export async function activate(context: vscode.ExtensionContext) {
             await keyStatusManager.syncStatus();
             if (keyStatusManager.enableSecurelyPassphraseCache) {
                 await secretStorage.set(keyStatusManager.currentKey.fingerprint, passphrase);
-                vscode.window.showInformationMessage(vscode.l10n.t('keyUnlockedWithCachedPassphrase'));
+                vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlockedWithCachedPassphrase']));
             } else {
-                vscode.window.showInformationMessage(vscode.l10n.t('keyUnlocked'));
+                vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlocked']));
                 const enableSecurelyPassphraseCacheNotice = !!(await mementoObjectStorage.get("enableSecurelyPassphraseCacheNotice"));
                 if (!enableSecurelyPassphraseCacheNotice) {
                     const result = await vscode.window.showInformationMessage<string>(
-                        vscode.l10n.t("enableSecurelyPassphraseCacheNotice"),
+                        vscode.l10n.t(m["enableSecurelyPassphraseCacheNotice"]),
                         actions.YES,
                         actions.NO,
                         actions.DO_NOT_ASK_AGAIN,
@@ -147,7 +148,7 @@ export async function activate(context: vscode.ExtensionContext) {
                         // causing `enableSecurelyPassphraseCache` setting links to be collapsed,
                         // notifications with options are used instead to avoid being collapsed.
                         await vscode.window.showInformationMessage<string>(
-                            vscode.l10n.t("enableSecurelyPassphraseCacheNoticeAgreed"),
+                            vscode.l10n.t(m["enableSecurelyPassphraseCacheNoticeAgreed"]),
                             actions.OK,
                         );
                         return;
@@ -155,7 +156,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     if (result === actions.DO_NOT_ASK_AGAIN) {
                         // Same as the reason above.
                         vscode.window.showInformationMessage<string>(
-                            vscode.l10n.t('enableSecurelyPassphraseCacheNoticeForbidden'),
+                            vscode.l10n.t(m['enableSecurelyPassphraseCacheNoticeForbidden']),
                             actions.OK,
                         );
                         return;
@@ -164,7 +165,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         } catch (err) {
             if (err instanceof Error) {
-                vscode.window.showErrorMessage(vscode.l10n.t('keyUnlockFailed', err.message));
+                vscode.window.showErrorMessage(vscode.l10n.t(m['keyUnlockFailed'], err.message));
             }
         }
     }));
@@ -174,16 +175,16 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand("gpgIndicator.deletePassphraseCache", async () => {
         const items: vscode.QuickPickItem[] | false = await generateKeyList(secretStorage, keyStatusManager);
         if (!items) {
-            vscode.window.showInformationMessage(vscode.l10n.t('noCachedPassphrase'));
+            vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
             return;
         }
         const targets = await vscode.window.showQuickPick(items, {
-            title: vscode.l10n.t("cachedPassphraseListForDeletion"),
+            title: vscode.l10n.t(m["cachedPassphraseListForDeletion"]),
             canPickMany: true,
             ignoreFocusOut: true,
             matchOnDescription: true,
             matchOnDetail: true,
-            placeHolder: vscode.l10n.t("cachedPassphraseListForDeletionPlaceHolder"),
+            placeHolder: vscode.l10n.t(m["cachedPassphraseListForDeletionPlaceHolder"]),
         });
         if (!Array.isArray(targets) || targets.length === 0) {
             return;
@@ -191,30 +192,30 @@ export async function activate(context: vscode.ExtensionContext) {
         for (const target of targets) {
             await secretStorage.delete(target.label);
         }
-        vscode.window.showInformationMessage(vscode.l10n.t('passphraseDeleted'));
+        vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseDeleted']));
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand("gpgIndicator.listPassphraseCache", async () => {
         const items: vscode.QuickPickItem[] | false = await generateKeyList(secretStorage, keyStatusManager);
         if (!items) {
-            vscode.window.showInformationMessage(vscode.l10n.t('noCachedPassphrase'));
+            vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
             return;
         }
         /**
          * Because of the lack of the listing function, use quick pick instead.
          */
         await vscode.window.showQuickPick(items, {
-            title: vscode.l10n.t("cachedPassphraseList"),
+            title: vscode.l10n.t(m["cachedPassphraseList"]),
         });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand("gpgIndicator.clearPassphraseCache", async () => {
         if ((await secretStorage.entries()).length === 0) {
-            vscode.window.showInformationMessage(vscode.l10n.t('noCachedPassphrase'));
+            vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
             return;
         }
         if ((await vscode.window.showInformationMessage<vscode.MessageItem>(
-            vscode.l10n.t("passphraseClearanceConfirm"),
+            vscode.l10n.t(m["passphraseClearanceConfirm"]),
             { modal: true },
             { title: actions.YES },
             { title: actions.NO, isCloseAffordance: true },
@@ -222,7 +223,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
         await secretStorage.clear();
-        vscode.window.showInformationMessage(vscode.l10n.t('passphraseCleared'));
+        vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
     }));
 
     const updateKeyStatus = () => {
@@ -265,7 +266,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const newEnableSecurelyPassphraseCache = configuration.get<boolean>('enableSecurelyPassphraseCache', false);
         if (keyStatusManager.enableSecurelyPassphraseCache && !newEnableSecurelyPassphraseCache) {
             secretStorage.clear().then(() => {
-                vscode.window.showInformationMessage(vscode.l10n.t('passphraseCleared'));
+                vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
             }).catch((e) => {
                 logger.error(`Cannot clear the passphrase cache when "enableSecurelyPassphraseCache" turn to off: ${e instanceof Error ? e.message : JSON.stringify(e, null, 4)}`);
             });

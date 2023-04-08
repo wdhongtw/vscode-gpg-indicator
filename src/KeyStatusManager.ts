@@ -6,6 +6,7 @@ import * as process from './indicator/process';
 import type { VscodeOutputLogger } from './logger';
 import type SecretObjectStorage from "./ObjectStorages/SecretObjectStorage";
 import locker from "./indicator/locker";
+import { m } from "./message";
 
 class KeyStatusEvent {
     constructor(public keyId: string, public isLocked: boolean) {
@@ -95,14 +96,14 @@ export default class KeyStatusManager {
                                 if (this.isUnlockedPrevious) {
                                     vscode.window.showInformationMessage(
                                         this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t('keyChangedAndAutomaticallyUnlocked')
-                                            : vscode.l10n.t('keyRelockedAndAutomaticallyUnlocked'),
+                                            ? vscode.l10n.t(m['keyChangedAndAutomaticallyUnlocked'])
+                                            : vscode.l10n.t(m['keyRelockedAndAutomaticallyUnlocked']),
                                     );
                                 } else {
                                     vscode.window.showInformationMessage(
                                         this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t('keyChangedAndAutomaticallyUnlocked')
-                                            : vscode.l10n.t('keyAutomaticallyUnlocked'),
+                                            ? vscode.l10n.t(m['keyChangedAndAutomaticallyUnlocked'])
+                                            : vscode.l10n.t(m['keyAutomaticallyUnlocked']),
                                     );
                                 }
                             } catch (e) {
@@ -111,14 +112,14 @@ export default class KeyStatusManager {
                                 if (this.isUnlockedPrevious) {
                                     vscode.window.showInformationMessage(
                                         this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t('keyChangedButAutomaticallyUnlockFailed')
-                                            : vscode.l10n.t('keyRelockedButAutomaticallyUnlockFailed'),
+                                            ? vscode.l10n.t(m['keyChangedButAutomaticallyUnlockFailed'])
+                                            : vscode.l10n.t(m['keyRelockedButAutomaticallyUnlockFailed']),
                                     );
                                 } else {
                                     vscode.window.showInformationMessage(
                                         this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t('keyChangedButAutomaticallyUnlockFailed')
-                                            : vscode.l10n.t('keyAutomaticallyUnlockFailed'),
+                                            ? vscode.l10n.t(m['keyChangedButAutomaticallyUnlockFailed'])
+                                            : vscode.l10n.t(m['keyAutomaticallyUnlockFailed']),
                                     );
                                 }
                             }
@@ -128,8 +129,8 @@ export default class KeyStatusManager {
                 } else if (this.isUnlockedPrevious && !this.isUnlocked) {
                     vscode.window.showInformationMessage(
                         this.currentKey === oldCurrentKey
-                            ? vscode.l10n.t('keyChanged')
-                            : vscode.l10n.t('keyRelocked'),
+                            ? vscode.l10n.t(m['keyChanged'])
+                            : vscode.l10n.t(m['keyRelocked']),
                     );
                 }
                 newEvent = new KeyStatusEvent(this.currentKey.fingerprint, !this.isUnlocked);
@@ -236,11 +237,11 @@ export default class KeyStatusManager {
     // Lock or unlock current key
     async unlockCurrentKey(passphrase: string): Promise<void> {
         if (this.activateFolder === undefined) {
-            throw new Error(vscode.l10n.t('noActiveFolder'));
+            throw new Error(vscode.l10n.t(m['noActiveFolder']));
         }
 
         if (this.currentKey === undefined) {
-            throw new Error(vscode.l10n.t('noKeyForCurrentFolder'));
+            throw new Error(vscode.l10n.t(m['noKeyForCurrentFolder']));
         }
 
         if (await gpg.isKeyUnlocked(this.currentKey.keygrip)) {
