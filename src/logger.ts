@@ -1,13 +1,16 @@
 import * as vscode from "vscode";
 
-const toLocalTimeZoneString = (date = new Date()) => date.toLocaleString(vscode.env.language);
+import { Logger } from "./indicator/logger";
+
+const timeStr = (date = new Date()) => date.toISOString();
 
 enum LogLevel {
     error = 1,
     warning,
     info
 }
-export class VscodeOutputLogger {
+
+export class VscodeOutputLogger implements Logger{
     private outputChannel: vscode.OutputChannel;
     private level: LogLevel;
     /**
@@ -44,7 +47,7 @@ export class VscodeOutputLogger {
         if (this.level < LogLevel.info) {
             return;
         }
-        this.outputChannel.appendLine(`[${toLocalTimeZoneString()}] [INFO] ` + message);
+        this.outputChannel.appendLine(`[${timeStr()}] [INFO] ` + message);
     }
 
     /**
@@ -55,7 +58,7 @@ export class VscodeOutputLogger {
         if (this.level < LogLevel.warning) {
             return;
         }
-        this.outputChannel.appendLine(`[${toLocalTimeZoneString()}] [WARN] ` + message);
+        this.outputChannel.appendLine(`[${timeStr()}] [WARN] ` + message);
     }
 
     /**
@@ -66,6 +69,6 @@ export class VscodeOutputLogger {
         if (this.level < LogLevel.error) {
             return;
         }
-        this.outputChannel.appendLine(`[${toLocalTimeZoneString()}] [ERROR] ` + message);
+        this.outputChannel.appendLine(`[${timeStr()}] [ERROR] ` + message);
     }
 }

@@ -1,6 +1,6 @@
 import * as process from './process';
 import * as assuan from './assuan';
-import type { VscodeOutputLogger } from '../logger';
+import type { Logger } from './logger';
 
 export interface GpgKeyInfo {
     type: string;
@@ -31,7 +31,7 @@ async function getSocketPath(): Promise<string> {
  * @param passphrase - The passphrase of the key.
  * @param sha1Hash - The hash string to be signed.
  */
-async function sign(logger: VscodeOutputLogger, socketPath: string, keygrip: string, passphrase: string, sha1Hash: string): Promise<void> {
+async function sign(logger: Logger, socketPath: string, keygrip: string, passphrase: string, sha1Hash: string): Promise<void> {
     let response: assuan.Response;
 
     const agent = new assuan.AssuanClient(socketPath);
@@ -193,7 +193,7 @@ const SHA1_EMPTY_DIGEST = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
  * @param keygrip - The keygrip of the key to be unlocked
  * @param passphrase - The passphrase for the key.
  */
-export async function unlockByKey(logger: VscodeOutputLogger, keygrip: string, passphrase: string): Promise<void> {
+export async function unlockByKey(logger: Logger, keygrip: string, passphrase: string): Promise<void> {
     const socketPath = await getSocketPath();
 
     // Hash value is not important here, the only requirement is the length of the hash value.

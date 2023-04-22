@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as git from './indicator/git';
 import * as gpg from './indicator/gpg';
 import * as process from './indicator/process';
-import type { VscodeOutputLogger } from './logger';
+import type { Logger } from './indicator/logger';
 import type SecretObjectStorage from "./ObjectStorages/SecretObjectStorage";
 import locker from "./indicator/locker";
 import { m } from "./message";
@@ -34,7 +34,7 @@ export default class KeyStatusManager {
      * @param syncInterval - key status sync interval in seconds.
      */
     constructor(
-        private logger: VscodeOutputLogger,
+        private logger: Logger,
         private syncInterval: number,
         private secretStorage: SecretObjectStorage,
         public enableSecurelyPassphraseCache: boolean,
