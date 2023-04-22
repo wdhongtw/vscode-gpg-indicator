@@ -4,7 +4,7 @@ import * as git from './indicator/git';
 import * as gpg from './indicator/gpg';
 import * as process from './indicator/process';
 import type { Logger } from './indicator/logger';
-import locker from "./indicator/locker";
+import { Mutex } from "./indicator/locker";
 import { m } from "./message";
 
 class KeyStatusEvent {
@@ -17,6 +17,8 @@ class KeyStatusEvent {
 }
 
 export default class KeyStatusManager {
+    private updateFolderLock: Mutex;
+    private syncStatusLock: Mutex;
     private activateFolder: string | undefined;
     private _activateFolder: string | undefined;
     private lastEvent: KeyStatusEvent | undefined;
@@ -39,7 +41,10 @@ export default class KeyStatusManager {
         public enableSecurelyPassphraseCache: boolean,
         private isWorkspaceTrusted: boolean,
         private tmp: string,
-    ) { }
+    ) {
+        this.updateFolderLock = new Mutex();
+        this.syncStatusLock = new Mutex();
+    }
 
     async syncLoop(): Promise<void> {
         await process.sleep(1 * 1000);
@@ -57,9 +62,9 @@ export default class KeyStatusManager {
     }
 
     async syncStatus(): Promise<void> {
-        await locker.acquire("KeyStatusManager#syncStatus", async (release) => {
+        await this.syncStatusLock.with(async () => {
             if (!this.activateFolder) {
-                return release();
+                return;
             }
             const oldCurrentKey = this.currentKey;
             const shouldParseKey = await git.isSigningActivated(this.activateFolder);
@@ -80,7 +85,7 @@ export default class KeyStatusManager {
                         update();
                     }
                 }
-                return release();
+                return;
             }
 
             let newEvent: KeyStatusEvent | undefined;
@@ -143,13 +148,12 @@ export default class KeyStatusManager {
             this.isUnlockedPrevious = this.isUnlocked;
 
             if (newEvent === undefined) {
-                return release();
+                return;
             }
             if (this.lastEvent === undefined || !KeyStatusEvent.equal(newEvent, this.lastEvent)) {
                 this.lastEvent = newEvent;
                 this.notifyUpdate(newEvent);
             }
-            release();
         });
     }
 
@@ -172,11 +176,11 @@ export default class KeyStatusManager {
     }
 
     private async updateFolder(folder: string, keyInfos?: gpg.GpgKeyInfo[]): Promise<void> {
-        await locker.acquire("KeyStatusManager#updateFolder", async (release) => {
+        await this.updateFolderLock.with(async () => {
             try {
                 const shouldParseKey = await git.isSigningActivated(folder);
                 if (!shouldParseKey) {
-                    return release();
+                    return;
                 }
                 const keyId = await git.getSigningKey(folder);
                 const keyInfo = await gpg.getKeyInfo(keyId, keyInfos);
@@ -185,7 +189,6 @@ export default class KeyStatusManager {
             } catch (err) {
                 this.logger.warn(`Can not find key information for folder: ${folder}`);
             }
-            release();
         });
     }
 

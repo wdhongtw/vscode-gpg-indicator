@@ -1,7 +1,34 @@
-import * as AsyncLock from "async-lock";
+export class Mutex {
+    private isOn: boolean;
+    constructor() {
+        this.isOn = false;
+    }
 
-const locker = new AsyncLock({
-    maxPending: Number.POSITIVE_INFINITY,
-});
+    async with(job: () => Promise<void>) {
+        await this.lock();
+        try {
+            await job();
+        } finally {
+            this.unlock();
+        }
+    }
 
-export default locker;
+    async lock() {
+        while (true) {
+            if (!this.isOn) {
+                break;
+            }
+            await sleep(500);
+        }
+        this.isOn = true;
+    }
+
+
+    async unlock() {
+        this.isOn = false;
+    }
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
