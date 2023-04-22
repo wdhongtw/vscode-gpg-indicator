@@ -2,11 +2,13 @@ import * as vscode from 'vscode';
 import * as fs from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
+import * as crypto from 'crypto';
+import * as util from 'util';
 
 import * as gpg from './indicator/gpg';
 import { Logger } from "./indicator/logger";
 import KeyStatusManager from "./manager";
-import { AbstractObjectStorage, StorageObject } from "./manager";
+import { Storage } from "./manager";
 import { m } from "./message";
 
 type statusStyleEnum = "fingerprintWithUserId" | "fingerprint" | "userId";
@@ -29,8 +31,8 @@ function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
  * Use to generate a `vscode.QuickPickItem[]` for listing and deleting cached passphrase
  * @returns When no cached passphrase found, return `false`, otherwise return `vscode.QuickPickItem[]`
  */
-async function generateKeyList(secretStorage: SecretObjectStorage, keyStatusManager: KeyStatusManager): Promise<false | vscode.QuickPickItem[]> {
-    const list = await secretStorage.keys();
+async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManager: KeyStatusManager): Promise<false | vscode.QuickPickItem[]> {
+    const list = iterToList<string>(secretStorage);
     if (list.length === 0) {
         vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
         return false;
@@ -76,12 +78,13 @@ async function generateKeyList(secretStorage: SecretObjectStorage, keyStatusMana
 }
 
 export async function activate(context: vscode.ExtensionContext) {
+    const masterKey = await initializeMasterKey(context.secrets);
+
     const configuration = vscode.workspace.getConfiguration('gpgIndicator');
     const logLevel = configuration.get<string>('outputLogLevel', "info");
     const logger = new VscodeOutputLogger('GPG Indicator', logLevel);
     const syncStatusInterval = configuration.get<number>('statusRefreshInterval', 30);
-    const secretStorage = new SecretObjectStorage(context.secrets, logger);
-    const mementoObjectStorage = new MementoObjectStorage(context.globalState, logger);
+    const secretStorage = new PassphraseStorage(new Cipher(masterKey), logger, context.globalState);
     let statusStyle: statusStyleEnum = configuration.get<statusStyleEnum>('statusStyle', "fingerprintWithUserId");
 
     logger.info('Active GPG Indicator extension ...');
@@ -129,7 +132,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlockedWithCachedPassphrase']));
             } else {
                 vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlocked']));
-                const enableSecurelyPassphraseCacheNotice = !!(await mementoObjectStorage.get("enableSecurelyPassphraseCacheNotice"));
+                const enableSecurelyPassphraseCacheNotice = !!(await context.globalState.get("user:is-cache-notice-read"));
                 if (!enableSecurelyPassphraseCacheNotice) {
                     const result = await vscode.window.showInformationMessage<string>(
                         vscode.l10n.t(m["enableSecurelyPassphraseCacheNotice"]),
@@ -140,7 +143,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     if (result === actions.NO) {
                         return;
                     }
-                    await mementoObjectStorage.set("enableSecurelyPassphraseCacheNotice", true);
+                    await context.globalState.update("user:is-cache-notice-read", true);
                     if (result === actions.YES) {
                         configuration.update("enableSecurelyPassphraseCache", true, true);
                         // Due to the fact that vscode automatically collapses ordinary notifications into one line,
@@ -209,7 +212,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand("gpgIndicator.clearPassphraseCache", async () => {
-        if ((await secretStorage.entries()).length === 0) {
+        if ((iterToList(secretStorage)).length === 0) {
             vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
             return;
         }
@@ -221,7 +224,9 @@ export async function activate(context: vscode.ExtensionContext) {
         ))?.title !== actions.YES) {
             return;
         }
-        await secretStorage.clear();
+        for (const key of secretStorage) {
+            await secretStorage.delete(key);
+        }
         vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
     }));
 
@@ -257,18 +262,22 @@ export async function activate(context: vscode.ExtensionContext) {
         keyStatusItem.show();
     };
 
-    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (event) => {
         logger.info("[Configuration] Change event detected");
         const configuration = vscode.workspace.getConfiguration('gpgIndicator');
         keyStatusManager.updateSyncInterval(configuration.get<number>('statusRefreshInterval', 30));
         logger.setLevel(configuration.get<string>('outputLogLevel', "info"));
         const newEnableSecurelyPassphraseCache = configuration.get<boolean>('enableSecurelyPassphraseCache', false);
         if (keyStatusManager.enableSecurelyPassphraseCache && !newEnableSecurelyPassphraseCache) {
-            secretStorage.clear().then(() => {
+            try {
+                for (const key of secretStorage) {
+                    await secretStorage.delete(key);
+                }
                 vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
-            }).catch((e) => {
+            }
+            catch (e) {
                 logger.error(`Cannot clear the passphrase cache when "enableSecurelyPassphraseCache" turn to off: ${e instanceof Error ? e.message : JSON.stringify(e, null, 4)}`);
-            });
+            }
         }
         keyStatusManager.enableSecurelyPassphraseCache = newEnableSecurelyPassphraseCache;
         const oldStatusStyle = statusStyle;
@@ -388,27 +397,119 @@ export class VscodeOutputLogger implements Logger {
 }
 
 
-class MementoObjectStorage extends AbstractObjectStorage {
-    constructor(private storageUtility: vscode.Memento, protected logger: VscodeOutputLogger) {
-        super();
+function iterToList<T>(iter: Iterable<T>): Array<T> {
+    let result: Array<T> = [];
+    for (const item of iter) {
+        result.push(item);
     }
-    protected async _getAll(): Promise<StorageObject> {
-        return await this.storageUtility.get(this.key) || {};
+
+    return result;
+}
+
+
+class PassphraseStorage implements Storage {
+    private namespace: string = "passphrase";
+    constructor(
+        private cipher: Cipher,
+        private logger: Logger,
+        private storage: vscode.Memento,
+    ) { }
+
+    async get(key: string): Promise<string | undefined> {
+        const encryptedValue = this.storage.get<EncryptedData>(`${this.namespace}:${key}`);
+        if (encryptedValue === undefined) {
+            return;
+        }
+        const value: string = await this.cipher.decrypt(encryptedValue);
+        return value;
     }
-    protected async _setStorage(storage: StorageObject): Promise<void> {
-        await this.storageUtility.update(this.key, storage);
+
+    async set(key: string, value: string): Promise<void> {
+        const encryptedValue: EncryptedData = await this.cipher.encrypt(value);
+        this.logger.info(`set passphrase with key: ${key}`);
+        await this.storage.update(`${this.namespace}:${key}`, encryptedValue);
+    }
+
+    async delete(key: string): Promise<void> {
+        // undefined value is the documented interface for delete operation
+        this.logger.info(`delete passphrase with key: ${key}`);
+        await this.storage.update(`${this.namespace}:${key}`, undefined);
+    }
+
+    // Support for-of iterator protocol
+    *[Symbol.iterator](): Iterator<string> {
+        const keys = this.storage.keys();
+        const passphraseKeys = keys.filter((key) => key.startsWith(`${this.namespace}:`));
+        const rawPassphraseKeys = passphraseKeys.map((key) => key.slice(`${this.namespace}:`.length));
+        for (const key of rawPassphraseKeys) {
+            yield key;
+        }
     }
 }
 
 
-class SecretObjectStorage extends AbstractObjectStorage {
-    constructor(private storageUtility: vscode.SecretStorage, protected logger: VscodeOutputLogger) {
-        super();
+const randomBytes = util.promisify(crypto.randomBytes);
+
+interface EncryptedData {
+    algTag: string
+    text: string
+}
+
+class Cipher {
+    private masterKey: string;
+
+    /**
+     * @param masterKey - the master key for secret encryption, should be hex string.
+     */
+    constructor(masterKey: string) {
+        this.masterKey = masterKey;
     }
-    protected async _getAll(): Promise<StorageObject> {
-        return JSON.parse(await this.storageUtility.get(this.key) || "{}");
+
+    async encrypt(plainText: string): Promise<EncryptedData> {
+        const iv = await randomBytes(12);
+        const masterKey = Buffer.from(this.masterKey, 'hex');
+
+        const cipher = crypto.createCipheriv('aes-256-gcm', masterKey, iv);
+        const cipherText = Buffer.concat([
+            cipher.update(plainText, 'utf8'),
+            cipher.final(),
+        ]).toString('hex');
+
+        return {
+            algTag: 'aes-256-gcm', // mechanism for compatibility in the future.
+            text: [cipherText, iv.toString('hex'), cipher.getAuthTag().toString('hex')].join(':')
+        };
     }
-    protected async _setStorage(storage: StorageObject): Promise<void> {
-        await this.storageUtility.store(this.key, JSON.stringify(storage));
+
+    async decrypt(data: EncryptedData): Promise<string> {
+        if (data.algTag !== 'aes-256-gcm') {
+            throw Error(`unexpected algorithm ${data.algTag}`);
+        }
+        const [cipherTextHex, ivHex, authTagHex] = data.text.split(':');
+        const iv = Buffer.from(ivHex, 'hex');
+        const masterKey = Buffer.from(this.masterKey, 'hex');
+
+        const cipher = crypto.createDecipheriv('aes-256-gcm', masterKey, iv);
+        cipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+        const plainText = Buffer.concat([
+            cipher.update(cipherTextHex, 'hex'),
+            cipher.final(),
+        ]).toString('utf8');
+
+        return plainText;
     }
+}
+
+async function initializeMasterKey(secrets: vscode.SecretStorage): Promise<string> {
+    // Notice: can not be changed.
+    const keyLabel = 'gpg-indicator-master-key';
+
+    let masterKey = await secrets.get(keyLabel);
+    if (masterKey === undefined) {
+        const rawKey = await util.promisify(crypto.randomBytes)(32);
+        masterKey = rawKey.toString('hex');
+        await secrets.store(keyLabel, masterKey);
+    }
+
+    return masterKey;
 }
