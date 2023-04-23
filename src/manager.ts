@@ -40,7 +40,7 @@ export default class KeyStatusManager {
         private secretStorage: Storage,
         public enableSecurelyPassphraseCache: boolean,
         private isWorkspaceTrusted: boolean,
-        private tmp: string,
+        private defaultFolder: string,
     ) {
         this.updateFolderLock = new Mutex();
         this.syncStatusLock = new Mutex();
@@ -196,8 +196,8 @@ export default class KeyStatusManager {
     async changeActivateFolder(folder: string): Promise<void> {
         this._activateFolder = folder;
         if (!this.isWorkspaceTrusted) {
-            this.logger.info(`Running in restricted mode for an untrusted workspace, ${folder} will not be used, ${this.tmp} instead.`);
-            folder = this.tmp;
+            this.logger.info(`Running in untrusted workspace, skip ${folder}, use ${this.defaultFolder} instead.`);
+            folder = this.defaultFolder;
         }
         if (this.activateFolder === folder) {
             return;
