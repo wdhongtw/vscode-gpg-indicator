@@ -137,7 +137,6 @@
         "watch": "tsc -watch -p ./"
     },
     "devDependencies": {
-        "@types/async-lock": "^1.4.0",
         "@types/node": "^16.14.2",
         "@types/vscode": "^1.73.0",
         "@typescript-eslint/eslint-plugin": "^5.2.0",
@@ -154,6 +153,5 @@
     },
     "preview": false,
     "dependencies": {
-        "async-lock": "^1.4.0"
     }
 }
