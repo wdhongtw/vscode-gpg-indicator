@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
-import * as fs from "fs";
-import { tmpdir } from "os";
-import * as path from "path";
+import * as os from 'os';
 import * as crypto from 'crypto';
 import * as util from 'util';
 
@@ -19,9 +17,6 @@ const actions = {
     DO_NOT_ASK_AGAIN: vscode.l10n.t(m["actionDoNotAskAgain"]),
     OK: vscode.l10n.t(m["actionOK"]),
 };
-
-const tmp = fs.mkdtempSync(path.join(tmpdir(), "gpgIndicator-"));
-fs.chmod(tmp, 0o544, () => { });
 
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
     return folders.map((folder: vscode.WorkspaceFolder) => folder.uri.fsPath);
@@ -100,7 +95,7 @@ export async function activate(context: vscode.ExtensionContext) {
         secretStorage,
         configuration.get<boolean>('enableSecurelyPassphraseCache', false),
         vscode.workspace.isTrusted,
-        tmp,
+        os.homedir(),
     );
     context.subscriptions.push(keyStatusManager);
 
@@ -319,10 +314,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-    await fs.promises.rm(tmp, {
-        recursive: true,
-        force: true,
-    });
 }
 
 const timeStr = (date = new Date()) => date.toISOString();
