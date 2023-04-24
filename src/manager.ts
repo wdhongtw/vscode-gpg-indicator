@@ -7,12 +7,12 @@ import type { Logger } from './indicator/logger';
 import { Mutex } from "./indicator/locker";
 import { m } from "./message";
 
-class KeyStatusEvent {
-    constructor(public keyId: string, public isLocked: boolean) {
+export class KeyStatusEvent {
+    constructor(public info: gpg.GpgKeyInfo, public isLocked: boolean) {
     }
 
     static equal(left: KeyStatusEvent, right: KeyStatusEvent): boolean {
-        return left.keyId === right.keyId && left.isLocked === right.isLocked;
+        return left.info.fingerprint === right.info.fingerprint && left.isLocked === right.isLocked;
     }
 }
 
@@ -22,6 +22,7 @@ export default class KeyStatusManager {
     private activateFolder: string | undefined;
     private _activateFolder: string | undefined;
     private lastEvent: KeyStatusEvent | undefined;
+    private currentKey: gpg.GpgKeyInfo | undefined;
     private keyOfFolders: Map<string, gpg.GpgKeyInfo> = new Map();
     private disposed: boolean = false;
     private updateFunctions: ((event?: KeyStatusEvent) => void)[] = [];
@@ -82,7 +83,7 @@ export default class KeyStatusManager {
                 if (oldCurrentKey) {
                     this.logger.info('User disabled commit signing or removed the key for current folder, trigger status update functions');
                     for (const update of this.updateFunctions) {
-                        update();
+                        update(undefined);
                     }
                 }
                 return;
@@ -137,7 +138,7 @@ export default class KeyStatusManager {
                             : vscode.l10n.t(m['keyRelocked']),
                     );
                 }
-                newEvent = new KeyStatusEvent(this.currentKey.fingerprint, !this.isUnlocked);
+                newEvent = new KeyStatusEvent(this.currentKey, !this.isUnlocked);
             } catch (err) {
                 if (!(err instanceof Error)) {
                     throw err;
@@ -158,7 +159,7 @@ export default class KeyStatusManager {
     }
 
     private notifyUpdate(event: KeyStatusEvent): void {
-        this.logger.info(`New event, key: ${event.keyId}, is locked: ${event.isLocked}`);
+        this.logger.info(`New event, key: ${event.info.fingerprint}, is locked: ${event.isLocked}`);
         this.logger.info('Trigger status update functions');
         for (const update of this.updateFunctions) {
             update(event);
@@ -222,18 +223,13 @@ export default class KeyStatusManager {
         this.updateFunctions.push(update);
     }
 
-    get currentKey() {
-        return this.activateFolder ? this.keyOfFolders.get(this.activateFolder) : undefined;
-    }
-
-    set currentKey(keyInfo: gpg.GpgKeyInfo | undefined) {
-        if (this.activateFolder) {
-            if (keyInfo) {
-                this.keyOfFolders.set(this.activateFolder, keyInfo);
-            } else {
-                this.keyOfFolders.delete(this.activateFolder);
-            }
+    getCurrentKey(): gpg.GpgKeyInfo | undefined {
+        const currentKey = this.activateFolder ? this.keyOfFolders.get(this.activateFolder) : undefined;
+        if (!currentKey) {
+            return undefined;
         }
+
+        return currentKey;
     }
 
     // Lock or unlock current key
