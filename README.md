@@ -25,13 +25,18 @@ When you click the indicator, you will be prompted for passphrase to unlock the 
 
 ### Passphrase Cache
 
-In [VS Code 1.53](https://code.visualstudio.com/updates/v1_53#_secrets-api), the [`SecretStorage` api](https://code.visualstudio.com/api/references/vscode-api#ExtensionContext.secrets) was introduced to provide a securely and persistent storage for secrets, information that is sensitive.
+Since [VS Code 1.53](https://code.visualstudio.com/updates/v1_53#_secrets-api), the
+[`SecretStorage` API](https://code.visualstudio.com/api/references/vscode-api#ExtensionContext.secrets)
+is introduced to provide a secure and persistent storage for secrets.
+With this API, this extension can maintain passphrase cache for user.
 
-You can enable the `gpgIndicator.enableSecurelyPassphraseCache` option to opt-in, if so your passphrase will be cached in the secret storage once you unlock your key.
+You can enable the `gpgIndicator.enableSecurelyPassphraseCache` option to opt-in, if so
+your passphrase will be cached in the secret storage once you unlock your key.
 
-When your passphrase is cached, your key will be unlocked automatically, so you don't have to manually unlock it.
+After that, your key will be unlocked automatically whenever this extension is enabled.
 
-You can manage your cached passphrase by listing, deleting some or clearing all. When you disable the option, the whole cache will be cleared automatically.
+You can list or delete your cached passphrase by command anytime.
+When you disable the passphrase-cache option, the whole cache will be cleared.
 
 ## Requirements
 
