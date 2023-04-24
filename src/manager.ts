@@ -26,7 +26,7 @@ export default class KeyStatusManager {
     private keyOfFolders: Map<string, gpg.GpgKeyInfo> = new Map();
     private disposed: boolean = false;
     private updateFunctions: ((event?: KeyStatusEvent) => void)[] = [];
-    public isUnlocked = false;
+    private isUnlocked = false;
     private isUnlockedPrevious = false;
 
     /**

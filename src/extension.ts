@@ -235,7 +235,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
         const shortId = event.info.fingerprint.substring(event.info.fingerprint.length - 16);
-        const lockIcon = keyStatusManager.isUnlocked ? 'unlock' : 'lock';
+        const lockIcon = !event.isLocked ? 'unlock' : 'lock';
         let shortIdWithUserId = `${shortId}`;
         let userId = "";
         if (event.info.userId) {
