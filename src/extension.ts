@@ -16,6 +16,7 @@ const actions = {
     NO: vscode.l10n.t(m["actionNo"]),
     DO_NOT_ASK_AGAIN: vscode.l10n.t(m["actionDoNotAskAgain"]),
     OK: vscode.l10n.t(m["actionOK"]),
+    OPEN_SETTING: vscode.l10n.t(m["actionOpenSetting"]),
 };
 
 function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
@@ -119,7 +120,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 : vscode.l10n.t(m['passphraseInputPromptTitle']),
             password: true,
             placeHolder: currentKey.userId
-                ? vscode.l10n.t(m['keyDescriptionWithUsedId'], currentKey.userId)
+                ? vscode.l10n.t(m['keyDescriptionWithUserId'], currentKey.userId)
                 : undefined,
         });
         if (passphrase === undefined) { return; }
@@ -131,8 +132,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlockedWithCachedPassphrase']));
             } else {
                 vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlocked']));
-                const enableSecurelyPassphraseCacheNotice = !!(await context.globalState.get("user:is-cache-notice-read"));
-                if (!enableSecurelyPassphraseCacheNotice) {
+                const isCacheNoticeRead = !!(await context.globalState.get("user:is-cache-notice-read"));
+                if (!isCacheNoticeRead) {
                     const result = await vscode.window.showInformationMessage<string>(
                         vscode.l10n.t(m["enableSecurelyPassphraseCacheNotice"]),
                         actions.YES,
@@ -148,25 +149,33 @@ export async function activate(context: vscode.ExtensionContext) {
                         // Due to the fact that vscode automatically collapses ordinary notifications into one line,
                         // causing `enableSecurelyPassphraseCache` setting links to be collapsed,
                         // notifications with options are used instead to avoid being collapsed.
-                        await vscode.window.showInformationMessage<string>(
+                        const result = await vscode.window.showInformationMessage<string>(
                             vscode.l10n.t(m["enableSecurelyPassphraseCacheNoticeAgreed"]),
                             actions.OK,
+                            actions.OPEN_SETTING,
                         );
+                        if (result === actions.OPEN_SETTING) {
+                            vscode.commands.executeCommand('workbench.action.openSettings', 'gpgIndicator.enableSecurelyPassphraseCache');
+                        }
                         return;
                     }
                     if (result === actions.DO_NOT_ASK_AGAIN) {
                         // Same as the reason above.
-                        vscode.window.showInformationMessage<string>(
+                        const result = await vscode.window.showInformationMessage<string>(
                             vscode.l10n.t(m['enableSecurelyPassphraseCacheNoticeForbidden']),
                             actions.OK,
+                            actions.OPEN_SETTING,
                         );
+                        if (result === actions.OPEN_SETTING) {
+                            vscode.commands.executeCommand('workbench.action.openSettings', 'gpgIndicator.enableSecurelyPassphraseCache');
+                        }
                         return;
                     }
                 }
             }
         } catch (err) {
             if (err instanceof Error) {
-                vscode.window.showErrorMessage(vscode.l10n.t(m['keyUnlockFailed'], err.message));
+                vscode.window.showErrorMessage(vscode.l10n.t(m['keyUnlockFailedWithId'], err.message));
             }
         }
     }));
