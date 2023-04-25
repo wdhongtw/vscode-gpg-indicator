@@ -6,7 +6,7 @@ import * as util from 'util';
 import * as gpg from './indicator/gpg';
 import { Logger } from "./indicator/logger";
 import KeyStatusManager from "./manager";
-import { Storage } from "./manager";
+import { Storage, KeyStatusEvent } from "./manager";
 import { m } from "./message";
 
 type statusStyleEnum = "fingerprintWithUserId" | "fingerprint" | "userId";
@@ -38,31 +38,34 @@ async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManage
             .filter(({ userId }) => userId)
             .map(({ userId, fingerprint }) => [fingerprint, userId]),
     );
-    if (keyStatusManager.currentKey?.fingerprint && list.includes(keyStatusManager.currentKey.fingerprint)) {
+    const isCurrentKey = (fingerprint: string) => keyStatusManager.getCurrentKey()?.fingerprint === fingerprint;
+    const currentKeyList = list.filter(isCurrentKey);
+    const currentKey = currentKeyList.length === 1 ? currentKeyList[0] : undefined;
+    if (currentKey) {
         items.push({
             label: vscode.l10n.t(m["currentKey"]),
             alwaysShow: true,
             kind: vscode.QuickPickItemKind.Separator,
         });
         items.push({
-            label: keyStatusManager.currentKey.fingerprint,
-            detail: keyList[keyStatusManager.currentKey.fingerprint],
+            label: currentKey,
+            detail: keyList[currentKey],
             alwaysShow: true,
             picked: false,
             kind: vscode.QuickPickItemKind.Default,
         });
     }
-    const restList = list.filter((fingerprint) => fingerprint !== keyStatusManager.currentKey?.fingerprint);
+    const restList = list.filter((fp: string) => !isCurrentKey(fp));
     if (restList.length > 0) {
         items.push({
             label: vscode.l10n.t(m["restKey"]),
             alwaysShow: false,
             kind: vscode.QuickPickItemKind.Separator,
         });
-        for (const label of restList) {
+        for (const fingerprint of restList) {
             items.push({
-                label,
-                detail: keyList[label],
+                label: fingerprint,
+                detail: keyList[fingerprint],
                 alwaysShow: false,
                 picked: false,
                 kind: vscode.QuickPickItemKind.Default,
@@ -105,7 +108,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const commandId = 'gpgIndicator.unlockCurrentKey';
     context.subscriptions.push(vscode.commands.registerCommand(commandId, async () => {
-        if (!keyStatusManager.currentKey) {
+        const currentKey = keyStatusManager.getCurrentKey();
+        if (!currentKey) {
             vscode.window.showErrorMessage(vscode.l10n.t(m["noKeyInCurrentFolder"]));
             return;
         }
@@ -114,8 +118,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 ? vscode.l10n.t(m['passphraseInputPromptTitleWhenSecurelyPassphraseCacheEnabled'])
                 : vscode.l10n.t(m['passphraseInputPromptTitle']),
             password: true,
-            placeHolder: keyStatusManager.currentKey.userId
-                ? vscode.l10n.t(m['keyDescriptionWithUsedId'], keyStatusManager.currentKey.userId)
+            placeHolder: currentKey.userId
+                ? vscode.l10n.t(m['keyDescriptionWithUsedId'], currentKey.userId)
                 : undefined,
         });
         if (passphrase === undefined) { return; }
@@ -123,7 +127,7 @@ export async function activate(context: vscode.ExtensionContext) {
             await keyStatusManager.unlockCurrentKey(passphrase);
             await keyStatusManager.syncStatus();
             if (keyStatusManager.enableSecurelyPassphraseCache) {
-                await secretStorage.set(keyStatusManager.currentKey.fingerprint, passphrase);
+                await secretStorage.set(currentKey.fingerprint, passphrase);
                 vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlockedWithCachedPassphrase']));
             } else {
                 vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlocked']));
@@ -225,18 +229,18 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
     }));
 
-    const updateKeyStatus = () => {
-        if (!keyStatusManager.currentKey) {
+    const updateKeyStatus = (event?: KeyStatusEvent) => {
+        if (!event) {
             keyStatusItem.hide();
             return;
         }
-        const shortId = keyStatusManager.currentKey.fingerprint.substring(keyStatusManager.currentKey.fingerprint.length - 16);
-        const lockIcon = keyStatusManager.isUnlocked ? 'unlock' : 'lock';
+        const shortId = event.info.fingerprint.substring(event.info.fingerprint.length - 16);
+        const lockIcon = !event.isLocked ? 'unlock' : 'lock';
         let shortIdWithUserId = `${shortId}`;
         let userId = "";
-        if (keyStatusManager.currentKey.userId) {
-            shortIdWithUserId += ` - ${keyStatusManager.currentKey.userId}`;
-            userId = keyStatusManager.currentKey.userId;
+        if (event.info.userId) {
+            shortIdWithUserId += ` - ${event.info.userId}`;
+            userId = event.info.userId;
         } else {
             userId = shortId;
         }

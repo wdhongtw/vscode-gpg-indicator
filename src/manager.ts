@@ -7,12 +7,12 @@ import type { Logger } from './indicator/logger';
 import { Mutex } from "./indicator/locker";
 import { m } from "./message";
 
-class KeyStatusEvent {
-    constructor(public keyId: string, public isLocked: boolean) {
+export class KeyStatusEvent {
+    constructor(public info: gpg.GpgKeyInfo, public isLocked: boolean) {
     }
 
     static equal(left: KeyStatusEvent, right: KeyStatusEvent): boolean {
-        return left.keyId === right.keyId && left.isLocked === right.isLocked;
+        return left.info.fingerprint === right.info.fingerprint && left.isLocked === right.isLocked;
     }
 }
 
@@ -22,11 +22,11 @@ export default class KeyStatusManager {
     private activateFolder: string | undefined;
     private _activateFolder: string | undefined;
     private lastEvent: KeyStatusEvent | undefined;
+    private currentKey: gpg.GpgKeyInfo | undefined;
     private keyOfFolders: Map<string, gpg.GpgKeyInfo> = new Map();
     private disposed: boolean = false;
     private updateFunctions: ((event?: KeyStatusEvent) => void)[] = [];
-    public isUnlocked = false;
-    private isUnlockedPrevious = false;
+    private isUnlocked = false;
 
     /**
      * Construct the key status manager.
@@ -61,91 +61,49 @@ export default class KeyStatusManager {
         this.syncInterval = syncInterval;
     }
 
+    private show(isChanged: boolean, changedMsg: string, defaultMsg: string) {
+        vscode.window.showInformationMessage(isChanged
+            ? vscode.l10n.t(changedMsg)
+            : vscode.l10n.t(defaultMsg),
+        );
+    }
+
     async syncStatus(): Promise<void> {
         await this.syncStatusLock.with(async () => {
             if (!this.activateFolder) {
                 return;
             }
             const oldCurrentKey = this.currentKey;
-            const shouldParseKey = await git.isSigningActivated(this.activateFolder);
-            if (shouldParseKey) {
-                const keyId = await git.getSigningKey(this.activateFolder);
-                if (!oldCurrentKey?.fingerprint.includes(keyId)) {
-                    const keyInfo = await gpg.getKeyInfo(keyId);
-                    this.logger.info(`Find updated key ${keyId} / ${keyInfo.fingerprint} from old key ${oldCurrentKey?.fingerprint} for current folder ${this.activateFolder}`);
-                    this.keyOfFolders.set(this.activateFolder, keyInfo);
-                }
-            } else {
-                this.currentKey = undefined;
-            }
+            const isUnlockedPrev = this.isUnlocked;
+
+            this.currentKey = this.keyOfFolders.get(this.activateFolder);
             if (this.currentKey === undefined) {
                 if (oldCurrentKey) {
                     this.logger.info('User disabled commit signing or removed the key for current folder, trigger status update functions');
                     for (const update of this.updateFunctions) {
-                        update();
+                        update(undefined);
                     }
                 }
                 return;
             }
+            const isChanged = this.currentKey !== oldCurrentKey;
 
             let newEvent: KeyStatusEvent | undefined;
+            const hasPassphrase = (await this.secretStorage.get(this.currentKey.fingerprint) !== undefined);
             try {
-                this.isUnlocked = await gpg.isKeyUnlocked(this.currentKey.keygrip);
-                if (this.enableSecurelyPassphraseCache) {
-                    if (!this.isUnlocked) {
-                        const passphrase = await this.secretStorage.get(this.currentKey.fingerprint);
-                        if (typeof passphrase === "string") {
-                            try {
-                                await this.unlockCurrentKey(passphrase);
-                                if (this.isUnlockedPrevious) {
-                                    vscode.window.showInformationMessage(
-                                        this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t(m['keyChangedAndAutomaticallyUnlocked'])
-                                            : vscode.l10n.t(m['keyRelockedAndAutomaticallyUnlocked']),
-                                    );
-                                } else {
-                                    vscode.window.showInformationMessage(
-                                        this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t(m['keyChangedAndAutomaticallyUnlocked'])
-                                            : vscode.l10n.t(m['keyAutomaticallyUnlocked']),
-                                    );
-                                }
-                            } catch (e) {
-                                this.logger.error(`Cannot unlock the key with the cached passphrase: ${e instanceof Error ? e.message : JSON.stringify(e, null, 4)}`);
-                                await this.secretStorage.delete(this.currentKey.fingerprint);
-                                if (this.isUnlockedPrevious) {
-                                    vscode.window.showInformationMessage(
-                                        this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t(m['keyChangedButAutomaticallyUnlockFailed'])
-                                            : vscode.l10n.t(m['keyRelockedButAutomaticallyUnlockFailed']),
-                                    );
-                                } else {
-                                    vscode.window.showInformationMessage(
-                                        this.currentKey !== oldCurrentKey
-                                            ? vscode.l10n.t(m['keyChangedButAutomaticallyUnlockFailed'])
-                                            : vscode.l10n.t(m['keyAutomaticallyUnlockFailed']),
-                                    );
-                                }
-                            }
-                            this.isUnlocked = await gpg.isKeyUnlocked(this.currentKey.keygrip);
-                        }
-                    }
-                } else if (this.isUnlockedPrevious && !this.isUnlocked) {
-                    vscode.window.showInformationMessage(
-                        this.currentKey === oldCurrentKey
-                            ? vscode.l10n.t(m['keyChanged'])
-                            : vscode.l10n.t(m['keyRelocked']),
-                    );
+                if (this.enableSecurelyPassphraseCache && hasPassphrase) {
+                    this.isUnlocked = await this.tryUnlockWithCache(isChanged, isUnlockedPrev, this.currentKey);
+                } else {
+                    this.isUnlocked = await this.showInfoOnly(isChanged, isUnlockedPrev, this.currentKey);
                 }
-                newEvent = new KeyStatusEvent(this.currentKey.fingerprint, !this.isUnlocked);
+
+                newEvent = new KeyStatusEvent(this.currentKey, !this.isUnlocked);
             } catch (err) {
                 if (!(err instanceof Error)) {
                     throw err;
                 }
-                this.isUnlocked = false;
                 this.logger.error(`Fail to check key status: ${err.message}`);
             }
-            this.isUnlockedPrevious = this.isUnlocked;
 
             if (newEvent === undefined) {
                 return;
@@ -157,8 +115,64 @@ export default class KeyStatusManager {
         });
     }
 
+    /**
+     * @param isChanged - whether the key is changed in last sync iteration.
+     * @param isUnlockedPrev - whether the key is locked in last sync iteration.
+     * @param keyInfo - the key to be unlocked, if required.
+     * @returns whether the key is unlocked after trying
+     */
+    private async tryUnlockWithCache(isChanged: boolean, isUnlockedPrev: boolean, keyInfo: gpg.GpgKeyInfo): Promise<boolean> {
+        const isUnlocked = await gpg.isKeyUnlocked(keyInfo.keygrip);
+        if (isUnlocked) {
+            return true;
+        }
+
+        const passphrase = await this.secretStorage.get(keyInfo.fingerprint);
+        if (!passphrase) {
+            return false;
+        }
+
+        try {
+            await this.unlockCurrentKey(passphrase);
+            if (isUnlockedPrev) {
+                this.show(isChanged, m['keyChangedAndAutomaticallyUnlocked'], m['keyRelockedAndAutomaticallyUnlocked']);
+            } else {
+                this.show(isChanged, m['keyChangedAndAutomaticallyUnlocked'], m['keyAutomaticallyUnlocked']);
+            }
+        } catch (err) {
+            if (!(err instanceof Error)) {
+                throw err;
+            }
+            this.logger.error(`Cannot unlock the key with the cached passphrase: ${err.message}`);
+            await this.secretStorage.delete(keyInfo.fingerprint);
+            if (isUnlockedPrev) {
+                this.show(isChanged, m['keyChangedButAutomaticallyUnlockFailed'], m['keyRelockedButAutomaticallyUnlockFailed']);
+            } else {
+                this.show(isChanged, m['keyChangedButAutomaticallyUnlockFailed'], m['keyAutomaticallyUnlockFailed']);
+            }
+        }
+
+        return await gpg.isKeyUnlocked(keyInfo.keygrip);
+    }
+
+    /**
+     * @param isChanged - whether the key is changed in last sync iteration.
+     * @param isUnlockedPrev - whether the key is locked in last sync iteration.
+     * @param keyInfo - the key to be unlocked, if required.
+     * @returns whether the key is unlocked
+     */
+    private async showInfoOnly(isChanged: boolean, isUnlockedPrev: boolean, keyInfo: gpg.GpgKeyInfo): Promise<boolean> {
+        const isUnlocked = await gpg.isKeyUnlocked(keyInfo.keygrip);
+        if (isUnlockedPrev && !isUnlocked) {
+            this.show(isChanged, m['keyChanged'], m['keyRelocked']);
+        }
+
+        return isUnlocked;
+    }
+
+
     private notifyUpdate(event: KeyStatusEvent): void {
-        this.logger.info(`New event, key: ${event.keyId}, is locked: ${event.isLocked}`);
+        this.logger.info(`New event, key: ${event.info.fingerprint}, is locked: ${event.isLocked}`);
         this.logger.info('Trigger status update functions');
         for (const update of this.updateFunctions) {
             update(event);
@@ -222,18 +236,13 @@ export default class KeyStatusManager {
         this.updateFunctions.push(update);
     }
 
-    get currentKey() {
-        return this.activateFolder ? this.keyOfFolders.get(this.activateFolder) : undefined;
-    }
-
-    set currentKey(keyInfo: gpg.GpgKeyInfo | undefined) {
-        if (this.activateFolder) {
-            if (keyInfo) {
-                this.keyOfFolders.set(this.activateFolder, keyInfo);
-            } else {
-                this.keyOfFolders.delete(this.activateFolder);
-            }
+    getCurrentKey(): gpg.GpgKeyInfo | undefined {
+        const currentKey = this.activateFolder ? this.keyOfFolders.get(this.activateFolder) : undefined;
+        if (!currentKey) {
+            return undefined;
         }
+
+        return currentKey;
     }
 
     // Lock or unlock current key
