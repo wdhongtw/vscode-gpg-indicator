@@ -97,7 +97,7 @@
                 },
                 "gpgIndicator.enableSecurelyPassphraseCache": {
                     "type": "boolean",
-                    "default": "false",
+                    "default": false,
                     "markdownDescription": "%gpgIndicator.l10n.configuration.enableSecurelyPassphraseCache%"
                 },
                 "gpgIndicator.statusStyle": {
