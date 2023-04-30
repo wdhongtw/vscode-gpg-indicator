@@ -86,6 +86,10 @@ and the key ID is the hex string after the algorithm identifier.
 
 ## Release Notes
 
+### 0.7.1
+
+Minor adjustment about config ID and message wording.
+
 ### 0.7.0
 
 Adopt `SecreteStore` API to store passphrase for key, if user enabled the feature.
