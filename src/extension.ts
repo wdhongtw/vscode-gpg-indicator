@@ -327,7 +327,7 @@ async function introduceCacheFeature(context: vscode.ExtensionContext) {
         actions.OPEN_SETTING,
     );
     if (postMessageResult === actions.OPEN_SETTING) {
-        vscode.commands.executeCommand('workbench.action.openSettings', 'gpgIndicator.enableSecurelyPassphraseCache');
+        vscode.commands.executeCommand('workbench.action.openSettings', 'gpgIndicator.enablePassphraseCache');
     }
 }
 

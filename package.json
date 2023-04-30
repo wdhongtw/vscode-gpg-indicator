@@ -64,15 +64,15 @@
                 },
                 {
                     "command": "gpgIndicator.deletePassphraseCache",
-                    "when": "config.gpgIndicator.enableSecurelyPassphraseCache"
+                    "when": "config.gpgIndicator.enablePassphraseCache"
                 },
                 {
                     "command": "gpgIndicator.listPassphraseCache",
-                    "when": "config.gpgIndicator.enableSecurelyPassphraseCache"
+                    "when": "config.gpgIndicator.enablePassphraseCache"
                 },
                 {
                     "command": "gpgIndicator.clearPassphraseCache",
-                    "when": "config.gpgIndicator.enableSecurelyPassphraseCache"
+                    "when": "config.gpgIndicator.enablePassphraseCache"
                 }
             ]
         },
@@ -95,7 +95,7 @@
                         "info"
                     ]
                 },
-                "gpgIndicator.enableSecurelyPassphraseCache": {
+                "gpgIndicator.enablePassphraseCache": {
                     "type": "boolean",
                     "default": false,
                     "markdownDescription": "%gpgIndicator.l10n.configuration.enableSecurelyPassphraseCache%"
@@ -125,7 +125,7 @@
             "restrictedConfigurations": [
                 "gpgIndicator.statusRefreshInterval",
                 "gpgIndicator.outputLogLevel",
-                "gpgIndicator.enableSecurelyPassphraseCache",
+                "gpgIndicator.enablePassphraseCache",
                 "gpgIndicator.statusStyle"
             ]
         }

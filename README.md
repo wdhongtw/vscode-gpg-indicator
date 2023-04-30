@@ -30,7 +30,7 @@ Since [VS Code 1.53](https://code.visualstudio.com/updates/v1_53#_secrets-api), 
 is introduced to provide a secure and persistent storage for secrets.
 With this API, this extension can maintain passphrase cache for user.
 
-You can enable the `gpgIndicator.enableSecurelyPassphraseCache` option to opt-in, if so
+You can enable the `gpgIndicator.enablePassphraseCache` option to opt-in, if so
 your passphrase will be cached in the secret storage once you unlock your key.
 
 After that, your key will be unlocked automatically whenever this extension is enabled.
@@ -57,8 +57,8 @@ if you like this extension!! 😸
   - The interval of background key status refresh loop, in seconds. Default to `30`.
 - `gpgIndicator.outputLogLevel`
   - The log level for extension log output. Default to `"info"`.
-- `gpgIndicator.enableSecurelyPassphraseCache`
-  - Specifies whether to use the `SecretStorage` of the vscode to store your passphrase SECURELY or not. Default to `false`.
+- `gpgIndicator.enablePassphraseCache`
+  - Specifies whether to store your passphrase or not. Default to `false`.
 - `gpgIndicator.statusStyle`
   - Specifies what to show about the current key in the status bar element. Default to `"fingerprintWithUserId"` (Example: `0123456789ABCDEF - Example User <example@example.com>`).
 
