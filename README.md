@@ -86,6 +86,12 @@ and the key ID is the hex string after the algorithm identifier.
 
 ## Release Notes
 
+### 0.7.0
+
+Adopt `SecreteStore` API to store passphrase for key, if user enabled the feature.
+
+Also i18n/l10n and untrusted workspace is supported.
+
 ### 0.6.2
 
 Allow trailing exclamation mark in signing key ID in Git configuration file.

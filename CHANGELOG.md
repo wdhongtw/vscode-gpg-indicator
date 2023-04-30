@@ -4,6 +4,13 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.7.0] - 2023-04-30
+### Added
+- Adopt `SecreteStore` API to store passphrase for key
+- Support i18n and l10n for setting descriptions and messages.
+- Support untrusted workspace by only check user home folder.
+
+
 ## [0.6.2] - 2022-10-30
 ### Fixed
 - Support trailing exclamation mark in singing key ID
