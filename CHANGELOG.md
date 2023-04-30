@@ -7,6 +7,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [0.7.0] - 2023-04-30
 ### Added
 - Adopt `SecreteStore` API to store passphrase for key
+- Support more key format in status bar
 - Support i18n and l10n for setting descriptions and messages.
 - Support untrusted workspace by only check user home folder.
 

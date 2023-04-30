@@ -60,7 +60,7 @@ if you like this extension!! 😸
 - `gpgIndicator.enablePassphraseCache`
   - Specifies whether to store your passphrase or not. Default to `false`.
 - `gpgIndicator.statusStyle`
-  - Specifies what to show about the current key in the status bar element. Default to `"fingerprintWithUserId"` (Example: `0123456789ABCDEF - Example User <example@example.com>`).
+  - Specifies how to show the current key in the status bar. Default to `"userId"` (Example: `0123456789ABCDEF - Example User <example@example.com>`).
 
 ## Known Issues
 
@@ -89,6 +89,7 @@ and the key ID is the hex string after the algorithm identifier.
 ### 0.7.0
 
 Adopt `SecreteStore` API to store passphrase for key, if user enabled the feature.
+And add more format for key in status bar.
 
 Also i18n/l10n and untrusted workspace is supported.
 
