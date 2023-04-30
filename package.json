@@ -102,7 +102,7 @@
                 },
                 "gpgIndicator.statusStyle": {
                     "type": "string",
-                    "default": "fingerprintWithUserId",
+                    "default": "userId",
                     "markdownDescription": "%gpgIndicator.l10n.configuration.statusStyle%",
                     "enum": [
                         "fingerprintWithUserId",
