@@ -34,11 +34,10 @@ async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManage
         return false;
     }
     const items: vscode.QuickPickItem[] = [];
-    const keyList = Object.fromEntries(
-        (await gpg.getKeyInfos())
-            .filter(({ userId }) => userId)
-            .map(({ userId, fingerprint }) => [fingerprint, userId]),
-    );
+    const keyInfos = await gpg.getKeyInfos();
+    const keyToUser = keyInfos.map(({ userId, fingerprint }): [string, string?] => [fingerprint, userId]);
+    const withUsers = keyToUser.filter((pair): pair is [string, string] => pair[1] !== undefined);
+    const keyList = new Map<string, string>(withUsers);
     const isCurrentKey = (fingerprint: string) => keyStatusManager.getCurrentKey()?.fingerprint === fingerprint;
     const currentKeyList = list.filter(isCurrentKey);
     const currentKey = currentKeyList.length === 1 ? currentKeyList[0] : undefined;
@@ -50,7 +49,7 @@ async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManage
         });
         items.push({
             label: currentKey,
-            detail: keyList[currentKey],
+            detail: keyList.get(currentKey),
             alwaysShow: true,
             picked: false,
             kind: vscode.QuickPickItemKind.Default,
@@ -66,7 +65,7 @@ async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManage
         for (const fingerprint of restList) {
             items.push({
                 label: fingerprint,
-                detail: keyList[fingerprint],
+                detail: keyList.get(fingerprint),
                 alwaysShow: false,
                 picked: false,
                 kind: vscode.QuickPickItemKind.Default,
