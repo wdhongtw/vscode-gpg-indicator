@@ -161,9 +161,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!Array.isArray(targets) || targets.length === 0) {
             return;
         }
-        for (const target of targets) {
-            await secretStorage.delete(target.label);
-        }
+        await Promise.all(targets.map((target) => secretStorage.delete(target.label)));
         vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseDeleted']));
     }));
 
@@ -194,9 +192,7 @@ export async function activate(context: vscode.ExtensionContext) {
         ))?.title !== actions.YES) {
             return;
         }
-        for (const key of secretStorage) {
-            await secretStorage.delete(key);
-        }
+        await Promise.all([...secretStorage].map((key) => secretStorage.delete(key)));
         vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
     }));
 
@@ -240,9 +236,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const newEnableSecurelyPassphraseCache = configuration.get<boolean>('enableSecurelyPassphraseCache', false);
         if (keyStatusManager.enableSecurelyPassphraseCache && !newEnableSecurelyPassphraseCache) {
             try {
-                for (const key of secretStorage) {
-                    await secretStorage.delete(key);
-                }
+                await Promise.all([...secretStorage].map((key) => secretStorage.delete(key)));
                 vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
             }
             catch (e) {
