@@ -4,7 +4,11 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.7.0] - 2023-04-30
+## [0.7.2] - 2023-08-27
+### Fixed
+- Fix a bug which breaks the passphrase cache function
+
+## [0.7.1] - 2023-04-30
 ### Changed
 - Shorten one configuration ID
 
