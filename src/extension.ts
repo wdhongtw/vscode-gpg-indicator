@@ -28,7 +28,7 @@ function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
  * @returns When no cached passphrase found, return `false`, otherwise return `vscode.QuickPickItem[]`
  */
 async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManager: KeyStatusManager): Promise<false | vscode.QuickPickItem[]> {
-    const list = iterToList<string>(secretStorage);
+    const list = [...secretStorage];
     if (list.length === 0) {
         vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
         return false;
@@ -182,7 +182,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand("gpgIndicator.clearPassphraseCache", async () => {
-        if ((iterToList(secretStorage)).length === 0) {
+        if ([...secretStorage].length === 0) {
             vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
             return;
         }
@@ -403,16 +403,6 @@ export class VscodeOutputLogger implements Logger {
 }
 
 
-function iterToList<T>(iter: Iterable<T>): Array<T> {
-    let result: Array<T> = [];
-    for (const item of iter) {
-        result.push(item);
-    }
-
-    return result;
-}
-
-
 class PassphraseStorage implements Storage {
     private namespace: string = "passphrase";
     constructor(
@@ -443,7 +433,7 @@ class PassphraseStorage implements Storage {
     }
 
     // Support for-of iterator protocol
-    *[Symbol.iterator](): Iterator<string> {
+    *[Symbol.iterator](): Generator<string> {
         const keys = this.storage.keys();
         const passphraseKeys = keys.filter((key) => key.startsWith(`${this.namespace}:`));
         const rawPassphraseKeys = passphraseKeys.map((key) => key.slice(`${this.namespace}:`.length));
