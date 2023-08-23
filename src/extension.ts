@@ -96,7 +96,7 @@ export async function activate(context: vscode.ExtensionContext) {
         logger,
         syncStatusInterval,
         secretStorage,
-        configuration.get<boolean>('enableSecurelyPassphraseCache', false),
+        configuration.get<boolean>('enablePassphraseCache', false),
         vscode.workspace.isTrusted,
         os.homedir(),
     );
@@ -114,7 +114,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
         const passphrase = await vscode.window.showInputBox({
-            prompt: keyStatusManager.enableSecurelyPassphraseCache
+            prompt: keyStatusManager.enablePassphraseCache
                 ? vscode.l10n.t(m['passphraseInputPromptTitleWhenSecurelyPassphraseCacheEnabled'])
                 : vscode.l10n.t(m['passphraseInputPromptTitle']),
             password: true,
@@ -132,7 +132,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        if (keyStatusManager.enableSecurelyPassphraseCache) {
+        if (keyStatusManager.enablePassphraseCache) {
             await secretStorage.set(currentKey.fingerprint, passphrase);
             vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlockedWithCachedPassphrase']));
         } else {
@@ -232,17 +232,17 @@ export async function activate(context: vscode.ExtensionContext) {
         const configuration = vscode.workspace.getConfiguration('gpgIndicator');
         keyStatusManager.updateSyncInterval(configuration.get<number>('statusRefreshInterval', 30));
         logger.setLevel(configuration.get<string>('outputLogLevel', "info"));
-        const newEnableSecurelyPassphraseCache = configuration.get<boolean>('enableSecurelyPassphraseCache', false);
-        if (keyStatusManager.enableSecurelyPassphraseCache && !newEnableSecurelyPassphraseCache) {
+        const newEnablePassphraseCache = configuration.get<boolean>('enablePassphraseCache', false);
+        if (keyStatusManager.enablePassphraseCache && !newEnablePassphraseCache) {
             try {
                 await Promise.all([...secretStorage].map((key) => secretStorage.delete(key)));
                 vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
             }
             catch (e) {
-                logger.error(`Cannot clear the passphrase cache when "enableSecurelyPassphraseCache" turn to off: ${e instanceof Error ? e.message : JSON.stringify(e, null, 4)}`);
+                logger.error(`Cannot clear the passphrase cache when "enablePassphraseCache" turn to off: ${e instanceof Error ? e.message : JSON.stringify(e, null, 4)}`);
             }
         }
-        keyStatusManager.enableSecurelyPassphraseCache = newEnableSecurelyPassphraseCache;
+        keyStatusManager.enablePassphraseCache = newEnablePassphraseCache;
         const oldStatusStyle = statusStyle;
         statusStyle = configuration.get<statusStyleEnum>('statusStyle', "fingerprintWithUserId");
         if (oldStatusStyle !== statusStyle) {
@@ -302,7 +302,7 @@ async function introduceCacheFeature(context: vscode.ExtensionContext) {
     }
     await context.globalState.update("user:is-cache-notice-read", true);
     if (result === actions.YES) {
-        configuration.update("enableSecurelyPassphraseCache", true, true);
+        configuration.update("enablePassphraseCache", true, true);
     }
 
     let postMessage: string;
@@ -312,7 +312,7 @@ async function introduceCacheFeature(context: vscode.ExtensionContext) {
         postMessage = m["enableSecurelyPassphraseCacheNoticeForbidden"];
     }
     // Due to the fact that vscode automatically collapses ordinary notifications into one line,
-    // causing `enableSecurelyPassphraseCache` setting links to be collapsed,
+    // causing `enablePassphraseCache` setting links to be collapsed,
     // notifications with options are used instead to avoid being collapsed.
     const postMessageResult = await vscode.window.showInformationMessage<string>(
         vscode.l10n.t(postMessage),
