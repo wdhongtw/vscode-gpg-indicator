@@ -184,9 +184,7 @@ export default class KeyStatusManager {
         this.logger.info('Update folder information');
         this.keyOfFolders.clear();
         const keyInfos = await gpg.getKeyInfos();
-        for (const folder of folders) {
-            await this.updateFolder(folder, keyInfos);
-        }
+        await Promise.all(folders.map((folder) => this.updateFolder(folder, keyInfos)));
     }
 
     private async updateFolder(folder: string, keyInfos?: gpg.GpgKeyInfo[]): Promise<void> {

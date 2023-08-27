@@ -28,17 +28,16 @@ function toFolders(folders: readonly vscode.WorkspaceFolder[]): string[] {
  * @returns When no cached passphrase found, return `false`, otherwise return `vscode.QuickPickItem[]`
  */
 async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManager: KeyStatusManager): Promise<false | vscode.QuickPickItem[]> {
-    const list = iterToList<string>(secretStorage);
+    const list = [...secretStorage];
     if (list.length === 0) {
         vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
         return false;
     }
     const items: vscode.QuickPickItem[] = [];
-    const keyList = Object.fromEntries(
-        (await gpg.getKeyInfos())
-            .filter(({ userId }) => userId)
-            .map(({ userId, fingerprint }) => [fingerprint, userId]),
-    );
+    const keyInfos = await gpg.getKeyInfos();
+    const keyToUser = keyInfos.map(({ userId, fingerprint }): [string, string?] => [fingerprint, userId]);
+    const withUsers = keyToUser.filter((pair): pair is [string, string] => pair[1] !== undefined);
+    const keyList = new Map<string, string>(withUsers);
     const isCurrentKey = (fingerprint: string) => keyStatusManager.getCurrentKey()?.fingerprint === fingerprint;
     const currentKeyList = list.filter(isCurrentKey);
     const currentKey = currentKeyList.length === 1 ? currentKeyList[0] : undefined;
@@ -50,7 +49,7 @@ async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManage
         });
         items.push({
             label: currentKey,
-            detail: keyList[currentKey],
+            detail: keyList.get(currentKey),
             alwaysShow: true,
             picked: false,
             kind: vscode.QuickPickItemKind.Default,
@@ -66,7 +65,7 @@ async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManage
         for (const fingerprint of restList) {
             items.push({
                 label: fingerprint,
-                detail: keyList[fingerprint],
+                detail: keyList.get(fingerprint),
                 alwaysShow: false,
                 picked: false,
                 kind: vscode.QuickPickItemKind.Default,
@@ -161,9 +160,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!Array.isArray(targets) || targets.length === 0) {
             return;
         }
-        for (const target of targets) {
-            await secretStorage.delete(target.label);
-        }
+        await Promise.all(targets.map((target) => secretStorage.delete(target.label)));
         vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseDeleted']));
     }));
 
@@ -182,7 +179,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand("gpgIndicator.clearPassphraseCache", async () => {
-        if ((iterToList(secretStorage)).length === 0) {
+        if ([...secretStorage].length === 0) {
             vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
             return;
         }
@@ -194,9 +191,7 @@ export async function activate(context: vscode.ExtensionContext) {
         ))?.title !== actions.YES) {
             return;
         }
-        for (const key of secretStorage) {
-            await secretStorage.delete(key);
-        }
+        await Promise.all([...secretStorage].map((key) => secretStorage.delete(key)));
         vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
     }));
 
@@ -240,9 +235,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const newEnableSecurelyPassphraseCache = configuration.get<boolean>('enableSecurelyPassphraseCache', false);
         if (keyStatusManager.enableSecurelyPassphraseCache && !newEnableSecurelyPassphraseCache) {
             try {
-                for (const key of secretStorage) {
-                    await secretStorage.delete(key);
-                }
+                await Promise.all([...secretStorage].map((key) => secretStorage.delete(key)));
                 vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
             }
             catch (e) {
@@ -403,16 +396,6 @@ export class VscodeOutputLogger implements Logger {
 }
 
 
-function iterToList<T>(iter: Iterable<T>): Array<T> {
-    let result: Array<T> = [];
-    for (const item of iter) {
-        result.push(item);
-    }
-
-    return result;
-}
-
-
 class PassphraseStorage implements Storage {
     private namespace: string = "passphrase";
     constructor(
@@ -443,7 +426,7 @@ class PassphraseStorage implements Storage {
     }
 
     // Support for-of iterator protocol
-    *[Symbol.iterator](): Iterator<string> {
+    *[Symbol.iterator](): Generator<string> {
         const keys = this.storage.keys();
         const passphraseKeys = keys.filter((key) => key.startsWith(`${this.namespace}:`));
         const rawPassphraseKeys = passphraseKeys.map((key) => key.slice(`${this.namespace}:`.length));
