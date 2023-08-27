@@ -38,7 +38,7 @@ export default class KeyStatusManager {
         private logger: Logger,
         private syncInterval: number,
         private secretStorage: Storage,
-        public enableSecurelyPassphraseCache: boolean,
+        public enablePassphraseCache: boolean,
         private isWorkspaceTrusted: boolean,
         private defaultFolder: string,
     ) {
@@ -91,7 +91,7 @@ export default class KeyStatusManager {
             let newEvent: KeyStatusEvent | undefined;
             const hasPassphrase = (await this.secretStorage.get(this.currentKey.fingerprint) !== undefined);
             try {
-                if (this.enableSecurelyPassphraseCache && hasPassphrase) {
+                if (this.enablePassphraseCache && hasPassphrase) {
                     this.isUnlocked = await this.tryUnlockWithCache(isChanged, isUnlockedPrev, this.currentKey);
                 } else {
                     this.isUnlocked = await this.showInfoOnly(isChanged, isUnlockedPrev, this.currentKey);
