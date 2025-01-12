@@ -5,7 +5,7 @@ const exec = util.promisify(require('child_process').exec);
 // see: https://nodejs.org/api/child_process.html#child_process_child_process_exec_command_options_callback
 
 
-function fromGitBoolean(data: string): boolean {
+export function fromGitBoolean(data: string): boolean {
     // see: https://git-scm.com/docs/git-config#Documentation/git-config.txt-boolean
     // empty string is hard to handle, ignore that case now
 

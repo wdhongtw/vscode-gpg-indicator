@@ -98,7 +98,7 @@ async function sign(logger: Logger, socketPath: string, keygrip: string, passphr
  *
  * @param rawText - output string from gpg --fingerprint --fingerprint --with-keygrip --with-colon
  */
-function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
+export function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
     /**
      * group 1: pub or sub, 2: ability (E S C A), 3: fingerprint 4. keygrip
      * For more information, see https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=blob_plain;f=doc/DETAILS
