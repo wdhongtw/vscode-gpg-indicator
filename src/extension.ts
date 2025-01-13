@@ -5,7 +5,7 @@ import * as util from 'util';
 
 import * as git from './indicator/git';
 import * as gpg from './indicator/gpg';
-import { Logger } from "./indicator/logger";
+import { Logger } from "./manager";
 import KeyStatusManager from "./manager";
 import { Storage, KeyStatusEvent } from "./manager";
 import { m } from "./message";
@@ -364,10 +364,6 @@ export class VscodeOutputLogger implements Logger {
         this.level = VscodeOutputLogger.levelFromString(level);
     }
 
-    /**
-     * Log some message at info level.
-     * @param message - a message without ending new line
-     */
     info(message: string): void {
         if (this.level < LogLevel.info) {
             return;
@@ -375,10 +371,6 @@ export class VscodeOutputLogger implements Logger {
         this.outputChannel.appendLine(`[${timeStr()}] [INFO] ` + message);
     }
 
-    /**
-     * Log some message at warning level.
-     * @param message - a message without ending new line
-     */
     warn(message: string): void {
         if (this.level < LogLevel.warning) {
             return;
@@ -386,10 +378,6 @@ export class VscodeOutputLogger implements Logger {
         this.outputChannel.appendLine(`[${timeStr()}] [WARN] ` + message);
     }
 
-    /**
-     * Log some message at error level.
-     * @param message - a message without ending new line
-     */
     error(message: string): void {
         if (this.level < LogLevel.error) {
             return;
