@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as crypto from 'crypto';
 import * as util from 'util';
 
+import * as git from './indicator/git';
 import * as gpg from './indicator/gpg';
 import { Logger } from "./indicator/logger";
 import KeyStatusManager from "./manager";
@@ -94,6 +95,8 @@ export async function activate(context: vscode.ExtensionContext) {
     logger.info('Create key status manager');
     const keyStatusManager = new KeyStatusManager(
         logger,
+        new git.CliGit(),
+        new gpg.CliGpg(logger),
         syncStatusInterval,
         secretStorage,
         configuration.get<boolean>('enablePassphraseCache', false),
