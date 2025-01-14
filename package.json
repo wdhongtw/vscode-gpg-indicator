@@ -135,6 +135,7 @@
         "compile": "tsc -p ./",
         "lint": "eslint src --ext ts",
         "test": "mocha",
+        "vscode-test": "vscode-test",
         "watch": "tsc -watch -p ./"
     },
     "devDependencies": {
@@ -143,6 +144,8 @@
         "@typescript-eslint/eslint-plugin": "^5.2.0",
         "@typescript-eslint/parser": "^5.2.0",
         "@vscode/l10n-dev": "^0.0.24",
+        "@vscode/test-cli": "^0.0.10",
+        "@vscode/test-electron": "^2.4.1",
         "@types/mocha": "^10.0.0",
         "@types/assert": "^1.5.0",
         "assert": "^2.1.0",
