@@ -83,7 +83,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const logLevel = configuration.get<string>('outputLogLevel', "info");
     const logger = new VscodeOutputLogger('GPG Indicator', logLevel);
     const syncStatusInterval = configuration.get<number>('statusRefreshInterval', 30);
-    const secretStorage = new PassphraseStorage(new Cipher(masterKey), logger, context.globalState);
+    const secretStorage = new PassphraseStorage(new AesGcmCipher(masterKey), logger, context.globalState);
     let statusStyle: statusStyleEnum = configuration.get<statusStyleEnum>('statusStyle', "fingerprintWithUserId");
 
     logger.info('Active GPG Indicator extension ...');
@@ -386,8 +386,12 @@ export class VscodeOutputLogger implements Logger {
     }
 }
 
-
-class PassphraseStorage implements Storage {
+/**
+ * A simple storage interface for passphrase.
+ * 
+ * The passphrase is encrypted before stored into VS Code storage.
+ */
+export class PassphraseStorage implements Storage {
     private namespace: string = "passphrase";
     constructor(
         private cipher: Cipher,
@@ -430,16 +434,32 @@ class PassphraseStorage implements Storage {
 
 const randomBytes = util.promisify(crypto.randomBytes);
 
-interface EncryptedData {
+/** Encrypted data structure. */
+export interface EncryptedData {
+
+    /** Algorithm tag for encrypted data, for future compatibility. */
     algTag: string
+
+    /** Encrypted data in string format. */
     text: string
 }
 
-class Cipher {
+/** Simple cipher interface, only support string type. */
+export interface Cipher {
+
+    /** Encrypt plain text to encrypted data. */
+    encrypt(plainText: string): Promise<EncryptedData>
+
+    /** Decrypt encrypted data to plain text. */
+    decrypt(data: EncryptedData): Promise<string>
+}
+
+/** A cipher implementation using AES-GCM */
+export class AesGcmCipher implements Cipher {
     private masterKey: string;
 
     /**
-     * @param masterKey - the master key for secret encryption, should be hex string.
+     * @param masterKey - the master key for secret encryption, must be hex string of 32 bytes.
      */
     constructor(masterKey: string) {
         this.masterKey = masterKey;
