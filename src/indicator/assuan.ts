@@ -235,9 +235,27 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * The Assuan interface for Assuan Protocol.
+ */
+interface Assuan {
+
+    /** Wait for the underline connection to be established. */
+    initialize(): Promise<void>;
+
+    /** Close the underline connection. */
+    dispose(): Promise<void>;
+
+    /** Send a request to the server. */
+    sendRequest(request: Request): Promise<void>;
+
+    /** Receive a response from the server, blocking wait. */
+    receiveResponse(): Promise<Response>;
+}
+
+/**
  * The AssuanClient class is a helper client for Assuan Protocol.
  */
-class AssuanClient {
+class AssuanClient implements Assuan {
     #socket: net.Socket;
 
     #responseLines: Buffer[] = [];
@@ -270,9 +288,6 @@ class AssuanClient {
         });
     }
 
-    /**
-     * Wait fo for the underline connection to be established.
-     */
     async initialize(): Promise<void> {
         while (true) {
             if (!this.#isConnected) {
@@ -282,9 +297,6 @@ class AssuanClient {
         }
     }
 
-    /**
-     * Close the underline connection.
-     */
     async dispose(): Promise<void> {
         this.#socket.destroy();
     }
@@ -296,7 +308,7 @@ class AssuanClient {
         await this.handleSend(Buffer.concat([line, Buffer.from('\n', 'utf8')]));
     }
 
-    handleSend(payload: Buffer): Promise<void> {
+    private handleSend(payload: Buffer): Promise<void> {
         return new Promise((resolve, reject) => {
             this.#socket.write(payload, (err: Error | undefined) => {
                 if (err) {
@@ -311,7 +323,7 @@ class AssuanClient {
     /**
      * Throws if encounter socket error or receive a error response.
      */
-    checkError(): void {
+    private checkError(): void {
         const socketError = this.#socketErrorBuffer.shift();
         if (socketError) {
             throw socketError;
