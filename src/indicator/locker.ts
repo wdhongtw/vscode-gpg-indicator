@@ -16,7 +16,7 @@ export class Mutex {
             await job();
         } finally {
             // unlock in "finally" to ensure cleanup for potential exception.
-            this.unlock();
+            await this.unlock();
         }
     }
 
