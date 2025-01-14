@@ -1,14 +1,35 @@
 import * as vscode from 'vscode';
 
-import * as git from './indicator/git';
-import * as gpg from './indicator/gpg';
 import * as process from './indicator/process';
-import type { Logger } from './indicator/logger';
 import { Mutex } from "./indicator/locker";
 import { m } from "./message";
 
+/**
+ * Logger is a sample interface for basic logging ability.
+ */
+export interface Logger {
+
+    /**
+     * Log some message at info level.
+     * @param message - a message without ending new line
+     */
+    info(message: string): void
+
+    /**
+     * Log some message at warning level.
+     * @param message - a message without ending new line
+     */
+    warn(message: string): void
+
+    /**
+     * Log some message at error level.
+     * @param message - a message without ending new line
+     */
+    error(message: string): void
+}
+
 export class KeyStatusEvent {
-    constructor(public info: gpg.GpgKeyInfo, public isLocked: boolean) {
+    constructor(public info: GpgKeyInfo, public isLocked: boolean) {
     }
 
     static equal(left: KeyStatusEvent, right: KeyStatusEvent): boolean {
@@ -22,8 +43,8 @@ export default class KeyStatusManager {
     private activateFolder: string | undefined;
     private _activateFolder: string | undefined;
     private lastEvent: KeyStatusEvent | undefined;
-    private currentKey: gpg.GpgKeyInfo | undefined;
-    private keyOfFolders: Map<string, gpg.GpgKeyInfo> = new Map();
+    private currentKey: GpgKeyInfo | undefined;
+    private keyOfFolders: Map<string, GpgKeyInfo> = new Map();
     private disposed: boolean = false;
     private updateFunctions: ((event?: KeyStatusEvent) => void)[] = [];
     private isUnlocked = false;
@@ -36,6 +57,8 @@ export default class KeyStatusManager {
      */
     constructor(
         private logger: Logger,
+        private git: GitAdapter,
+        private gpg: GpgAdapter,
         private syncInterval: number,
         private secretStorage: Storage,
         public enablePassphraseCache: boolean,
@@ -121,8 +144,8 @@ export default class KeyStatusManager {
      * @param keyInfo - the key to be unlocked, if required.
      * @returns whether the key is unlocked after trying
      */
-    private async tryUnlockWithCache(isChanged: boolean, isUnlockedPrev: boolean, keyInfo: gpg.GpgKeyInfo): Promise<boolean> {
-        const isUnlocked = await gpg.isKeyUnlocked(keyInfo.keygrip);
+    private async tryUnlockWithCache(isChanged: boolean, isUnlockedPrev: boolean, keyInfo: GpgKeyInfo): Promise<boolean> {
+        const isUnlocked = await this.gpg.isKeyUnlocked(keyInfo.keygrip);
         if (isUnlocked) {
             return true;
         }
@@ -152,7 +175,7 @@ export default class KeyStatusManager {
             }
         }
 
-        return await gpg.isKeyUnlocked(keyInfo.keygrip);
+        return await this.gpg.isKeyUnlocked(keyInfo.keygrip);
     }
 
     /**
@@ -161,8 +184,8 @@ export default class KeyStatusManager {
      * @param keyInfo - the key to be unlocked, if required.
      * @returns whether the key is unlocked
      */
-    private async showInfoOnly(isChanged: boolean, isUnlockedPrev: boolean, keyInfo: gpg.GpgKeyInfo): Promise<boolean> {
-        const isUnlocked = await gpg.isKeyUnlocked(keyInfo.keygrip);
+    private async showInfoOnly(isChanged: boolean, isUnlockedPrev: boolean, keyInfo: GpgKeyInfo): Promise<boolean> {
+        const isUnlocked = await this.gpg.isKeyUnlocked(keyInfo.keygrip);
         if (isUnlockedPrev && !isUnlocked) {
             this.show(isChanged, m['keyChanged'], m['keyRelocked']);
         }
@@ -183,19 +206,19 @@ export default class KeyStatusManager {
     async updateFolders(folders: string[]): Promise<void> {
         this.logger.info('Update folder information');
         this.keyOfFolders.clear();
-        const keyInfos = await gpg.getKeyInfos();
+        const keyInfos = await this.gpg.getKeyInfos();
         await Promise.all(folders.map((folder) => this.updateFolder(folder, keyInfos)));
     }
 
-    private async updateFolder(folder: string, keyInfos?: gpg.GpgKeyInfo[]): Promise<void> {
+    private async updateFolder(folder: string, keyInfos?: GpgKeyInfo[]): Promise<void> {
         await this.updateFolderLock.with(async () => {
             try {
-                const shouldParseKey = await git.isSigningActivated(folder);
+                const shouldParseKey = await this.git.isSigningActivated(folder);
                 if (!shouldParseKey) {
                     return;
                 }
-                const keyId = await git.getSigningKey(folder);
-                const keyInfo = await gpg.getKeyInfo(keyId, keyInfos);
+                const keyId = await this.git.getSigningKey(folder);
+                const keyInfo = await this.gpg.getKeyInfo(keyId, keyInfos);
                 this.logger.info(`Find key ${keyInfo.fingerprint} for folder ${folder}`);
                 this.keyOfFolders.set(folder, keyInfo);
             } catch (err) {
@@ -234,7 +257,7 @@ export default class KeyStatusManager {
         this.updateFunctions.push(update);
     }
 
-    getCurrentKey(): gpg.GpgKeyInfo | undefined {
+    getCurrentKey(): GpgKeyInfo | undefined {
         const currentKey = this.activateFolder ? this.keyOfFolders.get(this.activateFolder) : undefined;
         if (!currentKey) {
             return undefined;
@@ -253,13 +276,13 @@ export default class KeyStatusManager {
             throw new Error(vscode.l10n.t(m['noKeyForCurrentFolder']));
         }
 
-        if (await gpg.isKeyUnlocked(this.currentKey.keygrip)) {
+        if (await this.gpg.isKeyUnlocked(this.currentKey.keygrip)) {
             this.logger.warn(`Key is already unlocked, skip unlock request`);
             return;
         }
 
         this.logger.info(`Try to unlock current key: ${this.currentKey.fingerprint}`);
-        await gpg.unlockByKey(this.logger, this.currentKey.keygrip, passphrase);
+        await this.gpg.unlockByKey(this.currentKey.keygrip, passphrase);
     }
 
     // Stop sync key status loop
@@ -274,3 +297,71 @@ export interface Storage {
     delete(key: string): Promise<void>
 }
 
+/** GitAdapter is an interface for git operations. */
+export interface GitAdapter {
+
+    /**
+     * Get the signing key for the project.
+     * @param project - the project path.
+     * @returns the signing key.
+     */
+    getSigningKey(project: string): Promise<string>;
+
+    /**
+     * Check whether the signing is activated for the project.
+     * @param project - the project path.
+     * @returns whether the signing is activated.
+     */
+    isSigningActivated(project: string): Promise<boolean>;
+}
+
+/** GpgKeyInfo is a type for GPG key information. */
+export interface GpgKeyInfo {
+
+    /** The type of the key. "pub" for primary key, "sub" for sub key. */
+    type: string;
+
+    /** The capabilities of the key. "s" for signing, "e" for encryption, and so on. */
+    capabilities: string;
+
+    /** The fingerprint of the key, used for user to identify a key in config. */
+    fingerprint: string;
+
+    /** The keygrip of the key, used to identify a key in GPG Assuan protocol. */
+    keygrip: string;
+
+    /** The user ID of the key, defined by GPG, usually contains full name and email. */
+    userId?: string;
+}
+
+/** GpgAdapter is an interface for GPG operations. */
+export interface GpgAdapter {
+
+    /**
+     * Check whether the key is unlocked.
+     * @param keygrip - the keygrip of the key to be checked
+     * @returns whether the key is unlocked
+     */
+    isKeyUnlocked(keygrip: string): Promise<boolean>;
+
+    /**
+     * Get all key information.
+     * @returns all key information
+     */
+    getKeyInfos(): Promise<GpgKeyInfo[]>;
+
+    /**
+     * Get key information of given ID of GPG key.
+     * @param keyId - ID of the GPG key
+     * @param keyInfos - the cache of key information, if available
+     * @returns key information
+     */
+    getKeyInfo(keyId: string, keyInfos?: GpgKeyInfo[]): Promise<GpgKeyInfo>;
+
+    /**
+     * Unlock some key with the passphrase.
+     * @param keygrip - the keygrip of the key to be unlocked
+     * @param passphrase - the passphrase for the key
+     */
+    unlockByKey(keygrip: string, passphrase: string): Promise<void>;
+}

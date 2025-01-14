@@ -1,14 +1,8 @@
 import * as process from './process';
 import * as assuan from './assuan';
-import type { Logger } from './logger';
 
-export interface GpgKeyInfo {
-    type: string;
-    capabilities: string;
-    fingerprint: string;
-    keygrip: string;
-    userId?: string;
-}
+import type { Logger } from '../manager';
+import * as core from '../manager';
 
 /**
  * Get the path of socket file for communication with GPG agent.
@@ -98,17 +92,17 @@ async function sign(logger: Logger, socketPath: string, keygrip: string, passphr
  *
  * @param rawText - output string from gpg --fingerprint --fingerprint --with-keygrip --with-colon
  */
-export function parseGpgKey(rawText: string): Array<GpgKeyInfo> {
+export function parseGpgKey(rawText: string): Array<core.GpgKeyInfo> {
     /**
      * group 1: pub or sub, 2: ability (E S C A), 3: fingerprint 4. keygrip
      * For more information, see https://git.gnupg.org/cgi-bin/gitweb.cgi?p=gnupg.git;a=blob_plain;f=doc/DETAILS
      */
     let pattern: RegExp = /(pub|sub):(?:[^:]*:){10}([escaD?]+)\w*:(?:[^:]*:)*?\n(?:fpr|fp2):(?:[^:]*:){8}(\w*):(?:[^:]*:)*?\ngrp:(?:[^:]*:){8}(\w*):(?:[^:]*:)*?(?:\nuid:(?:[^:]*:){8}([^:]*):(?:[^:]*:)*?)?/g;
 
-    let infos: Array<GpgKeyInfo> = [];
+    let infos: Array<core.GpgKeyInfo> = [];
     let matched: RegExpExecArray | null;
     while ((matched = pattern.exec(rawText)) !== null) {
-        let info: GpgKeyInfo = {
+        let info: core.GpgKeyInfo = {
             type: matched[1],
             capabilities: matched[2],
             fingerprint: matched[3],
@@ -154,7 +148,7 @@ export async function isKeyIdUnlocked(keyId: string): Promise<boolean> {
  * @returns key information
  */
 
-export async function getKeyInfos(): Promise<GpgKeyInfo[]> {
+export async function getKeyInfos(): Promise<core.GpgKeyInfo[]> {
     /**
      * --fingerprint flag is given twice to get fingerprint of subkey
      * --with-colon flag is given to get the key information in a more machine-readable manner
@@ -173,7 +167,7 @@ export async function getKeyInfos(): Promise<GpgKeyInfo[]> {
  * @param keyInfos - If caller already had the cache, the cache should be passed to avoid duplicated `getKeyInfos()`
  * @returns key information
  */
-export async function getKeyInfo(keyId: string, keyInfos?: GpgKeyInfo[]): Promise<GpgKeyInfo> {
+export async function getKeyInfo(keyId: string, keyInfos?: core.GpgKeyInfo[]): Promise<core.GpgKeyInfo> {
     for (let info of (Array.isArray(keyInfos) ? keyInfos : await getKeyInfos())) {
         // GPG signing key is usually given as shorter ID
         if (info.fingerprint.includes(keyId)) {
@@ -198,4 +192,27 @@ export async function unlockByKey(logger: Logger, keygrip: string, passphrase: s
 
     // Hash value is not important here, the only requirement is the length of the hash value.
     await sign(logger, socketPath, keygrip, passphrase, SHA1_EMPTY_DIGEST);
+}
+
+export class CliGpg implements core.GpgAdapter {
+
+    constructor(
+        private logger: Logger
+    ) { }
+
+    async isKeyUnlocked(keygrip: string): Promise<boolean> {
+        return await isKeyUnlocked(keygrip);
+    }
+
+    async getKeyInfos(): Promise<core.GpgKeyInfo[]> {
+        return await getKeyInfos();
+    }
+
+    async getKeyInfo(keyId: string, keyInfos?: core.GpgKeyInfo[]): Promise<core.GpgKeyInfo> {
+        return await getKeyInfo(keyId, keyInfos);
+    }
+
+    async unlockByKey(keygrip: string, passphrase: string): Promise<void> {
+        return await unlockByKey(this.logger, keygrip, passphrase);
+    }
 }
