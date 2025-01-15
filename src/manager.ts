@@ -28,6 +28,16 @@ export interface Logger {
     error(message: string): void
 }
 
+/** DummyLogger is a sample implementation of Logger. */
+export class DummyLogger implements Logger {
+
+    info(message: string): void { }
+
+    warn(message: string): void { }
+
+    error(message: string): void { }
+}
+
 export class KeyStatusEvent {
     constructor(public info: GpgKeyInfo, public isLocked: boolean) {
     }
