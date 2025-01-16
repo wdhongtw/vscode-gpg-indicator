@@ -240,9 +240,9 @@ export async function activate(context: vscode.ExtensionContext) {
             try {
                 await Promise.all([...secretStorage].map((key) => secretStorage.delete(key)));
                 vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
-            }
-            catch (e) {
-                logger.error(`Cannot clear the passphrase cache when "enablePassphraseCache" turn to off: ${e instanceof Error ? e.message : JSON.stringify(e, null, 4)}`);
+            } catch (err) {
+                const errors = err instanceof Error ? err.message : JSON.stringify(err);
+                logger.error(`Cannot clear the passphrase cache when "enablePassphraseCache" turn to off: ${errors}`);
             }
         }
         keyStatusManager.enablePassphraseCache = newEnablePassphraseCache;
