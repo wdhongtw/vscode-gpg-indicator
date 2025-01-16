@@ -4,6 +4,16 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.7.3] - 2025-01-16
+### Added
+- Add experimental support for TCP-based agent connection
+- Add tests to enhance development experience
+### Changed
+- Adopt inversion of control for core business logic
+### Fixed
+- Fix parsing logic for different favor of line break sequence
+- Correct the lock releasing logic in our mutex implementation
+
 ## [0.7.2] - 2023-08-27
 ### Fixed
 - Fix a bug which breaks the passphrase cache function

@@ -86,6 +86,10 @@ and the key ID is the hex string after the algorithm identifier.
 
 ## Release Notes
 
+### 0.7.3
+
+Experimental support for Windows and minor bug fixes.
+
 ### 0.7.2
 
 Fix a bug which breaks the passphrase cache function.
