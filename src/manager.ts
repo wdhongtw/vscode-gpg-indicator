@@ -303,9 +303,16 @@ export default class KeyStatusManager {
     }
 }
 
+/** The abstract storage for our application, focusing on string type. */
 export interface Storage {
+
+    /** Get the value for the key. */
     get(key: string): Promise<string | undefined>
+
+    /** Update or insert value for the key. */
     set(key: string, value: string): Promise<void>
+
+    /** Delete a value for some key, if any. */
     delete(key: string): Promise<void>
 }
 
