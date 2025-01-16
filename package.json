@@ -15,18 +15,14 @@
     "version": "0.7.3",
     "publisher": "wdhongtw",
     "engines": {
-        "vscode": "^1.73.0"
+        "vscode": "^1.75.0"
     },
     "categories": [
         "Other"
     ],
     "icon": "images/icon-color.png",
     "activationEvents": [
-        "workspaceContains:/.git",
-        "onCommand:gpgIndicator.unlockCurrentKey",
-        "onCommand:gpgIndicator.deletePassphraseCache",
-        "onCommand:gpgIndicator.clearPassphraseCache",
-        "onCommand:gpgIndicator.listPassphraseCache"
+        "workspaceContains:/.git"
     ],
     "main": "./dist/extension.js",
     "l10n": "./l10n",
