@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 
 import * as process from './indicator/process';
 import { Mutex } from "./indicator/locker";
-import { m } from "./message";
+import * as message from "./message";
+import { keys } from "./message";
 
 /**
  * Logger is a sample interface for basic logging ability.
@@ -66,6 +67,7 @@ export default class KeyStatusManager {
      * @param syncInterval - key status sync interval in seconds.
      */
     constructor(
+        private _t: (w: message.WaitTranslate) => string,
         private logger: Logger,
         private git: GitAdapter,
         private gpg: GpgAdapter,
@@ -94,10 +96,10 @@ export default class KeyStatusManager {
         this.syncInterval = syncInterval;
     }
 
-    private show(isChanged: boolean, changedMsg: string, defaultMsg: string) {
+    private show(isChanged: boolean, changedMsg: message.WaitTranslate, defaultMsg: message.WaitTranslate) {
         vscode.window.showInformationMessage(isChanged
-            ? vscode.l10n.t(changedMsg)
-            : vscode.l10n.t(defaultMsg),
+            ? this._t(changedMsg)
+            : this._t(defaultMsg),
         );
     }
 
@@ -168,9 +170,9 @@ export default class KeyStatusManager {
         try {
             await this.unlockCurrentKey(passphrase);
             if (isUnlockedPrev) {
-                this.show(isChanged, m['keyChangedAndAutomaticallyUnlocked'], m['keyRelockedAndAutomaticallyUnlocked']);
+                this.show(isChanged, keys.keyChangedAndAutomaticallyUnlocked(), keys.keyRelockedAndAutomaticallyUnlocked());
             } else {
-                this.show(isChanged, m['keyChangedAndAutomaticallyUnlocked'], m['keyAutomaticallyUnlocked']);
+                this.show(isChanged, keys.keyChangedAndAutomaticallyUnlocked(), keys.keyAutomaticallyUnlocked());
             }
         } catch (err) {
             if (!(err instanceof Error)) {
@@ -179,9 +181,9 @@ export default class KeyStatusManager {
             this.logger.error(`Cannot unlock the key with the cached passphrase: ${err.message}`);
             await this.secretStorage.delete(keyInfo.fingerprint);
             if (isUnlockedPrev) {
-                this.show(isChanged, m['keyChangedButAutomaticallyUnlockFailed'], m['keyRelockedButAutomaticallyUnlockFailed']);
+                this.show(isChanged, keys.keyChangedButAutomaticallyUnlockFailed(), keys.keyRelockedButAutomaticallyUnlockFailed());
             } else {
-                this.show(isChanged, m['keyChangedButAutomaticallyUnlockFailed'], m['keyAutomaticallyUnlockFailed']);
+                this.show(isChanged, keys.keyChangedButAutomaticallyUnlockFailed(), keys.keyAutomaticallyUnlockFailed());
             }
         }
 
@@ -197,7 +199,7 @@ export default class KeyStatusManager {
     private async showInfoOnly(isChanged: boolean, isUnlockedPrev: boolean, keyInfo: GpgKeyInfo): Promise<boolean> {
         const isUnlocked = await this.gpg.isKeyUnlocked(keyInfo.keygrip);
         if (isUnlockedPrev && !isUnlocked) {
-            this.show(isChanged, m['keyChanged'], m['keyRelocked']);
+            this.show(isChanged, keys.keyChanged(), keys.keyRelocked());
         }
 
         return isUnlocked;
@@ -279,11 +281,11 @@ export default class KeyStatusManager {
     // Lock or unlock current key
     async unlockCurrentKey(passphrase: string): Promise<void> {
         if (this.activateFolder === undefined) {
-            throw new Error(vscode.l10n.t(m['noActiveFolder']));
+            throw new Error(this._t(keys.noActiveFolder()));
         }
 
         if (this.currentKey === undefined) {
-            throw new Error(vscode.l10n.t(m['noKeyForCurrentFolder']));
+            throw new Error(this._t(keys.noKeyForCurrentFolder()));
         }
 
         if (await this.gpg.isKeyUnlocked(this.currentKey.keygrip)) {
