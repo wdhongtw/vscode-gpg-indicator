@@ -99,9 +99,12 @@ export function parseGpgKey(rawText: string): Array<core.GpgKeyInfo> {
      */
     let pattern: RegExp = /(pub|sub):(?:[^:]*:){10}([escaD?]+)\w*:(?:[^:]*:)*?\n(?:fpr|fp2):(?:[^:]*:){8}(\w*):(?:[^:]*:)*?\ngrp:(?:[^:]*:){8}(\w*):(?:[^:]*:)*?(?:\nuid:(?:[^:]*:){8}([^:]*):(?:[^:]*:)*?)?/g;
 
+    // unify line break sequence, since that we need to match LF later.
+    let sanitizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
     let infos: Array<core.GpgKeyInfo> = [];
     let matched: RegExpExecArray | null;
-    while ((matched = pattern.exec(rawText)) !== null) {
+    while ((matched = pattern.exec(sanitizedText)) !== null) {
         let info: core.GpgKeyInfo = {
             type: matched[1],
             capabilities: matched[2],
