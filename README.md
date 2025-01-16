@@ -40,7 +40,7 @@ When you disable the passphrase-cache option, the whole cache will be cleared.
 
 ## Requirements
 
-- Linux environment (It's not been tested on other platform)
+- Linux (including WSL) or Windows. (Not tested in macOS, but should work.)
 - GPG tool chain (`gpg`, `gpg-agent`, `gpg-connect-agent`) above 2.1
 
 ## Issues & Reviews
