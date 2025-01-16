@@ -214,7 +214,7 @@ export default class KeyStatusManager {
         }
     }
 
-    // Update workspace folders
+    /** Update workspace folders */
     async updateFolders(folders: string[]): Promise<void> {
         this.logger.info('Update folder information');
         this.keyOfFolders.clear();
@@ -239,7 +239,7 @@ export default class KeyStatusManager {
         });
     }
 
-    // Change current key according to activate folder
+    /** Change current key according to activate folder */
     async changeActivateFolder(folder: string): Promise<void> {
         this._activateFolder = folder;
         if (!this.isWorkspaceTrusted) {
@@ -278,7 +278,7 @@ export default class KeyStatusManager {
         return currentKey;
     }
 
-    // Lock or unlock current key
+    /** Lock or unlock current key */
     async unlockCurrentKey(passphrase: string): Promise<void> {
         if (this.activateFolder === undefined) {
             throw new Error(this._t(keys.noActiveFolder()));
@@ -297,7 +297,7 @@ export default class KeyStatusManager {
         await this.gpg.unlockByKey(this.currentKey.keygrip, passphrase);
     }
 
-    // Stop sync key status loop
+    /** Stop sync key status loop */
     dispose(): void {
         this.disposed = true;
     }

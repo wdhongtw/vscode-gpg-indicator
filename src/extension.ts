@@ -180,9 +180,8 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(_t(keys.noCachedPassphrase()));
             return;
         }
-        /**
-         * Because of the lack of the listing function, use quick pick instead.
-         */
+
+        // Because of the lack of the listing function, use quick pick instead.
         await vscode.window.showQuickPick(items, {
             title: _t(keys.cachedPassphraseList()),
         });
