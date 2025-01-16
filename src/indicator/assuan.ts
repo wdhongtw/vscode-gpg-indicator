@@ -1,4 +1,6 @@
 import * as net from 'net';
+import * as fs from 'fs';
+import { promisify } from 'util';
 
 class RequestCommand {
     command: string;
@@ -234,6 +236,49 @@ function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export interface TcpInfo {
+    port: number;
+    sharedKey: Buffer;
+}
+
+/**
+ * Detect the TCP connection information from the file, if any.
+ *
+ * @param configPath - The file path to the GnuPG socket.
+ */
+export async function detectTcpInfo(configPath: string): Promise<TcpInfo | undefined> {
+    // In some platform, e.g. Gpg4win, the file is not a socket.
+    // Instead, it's a regular file for storing the port and shared key.
+
+    const lstat = promisify(fs.lstat);
+    const status = await lstat(configPath);
+    if (!status.isFile()) { return undefined; }
+
+    // The file contains two parts, separated by a new line character.
+    // First part is port in decimal string, second part is the shared key in raw bytes.
+    const content = fs.readFileSync(configPath);
+    const pos = content.indexOf('\n', 0, 'utf8');
+    if (pos === -1) {
+        throw new Error("the file is not in correct format");
+    }
+
+    return {
+        port: parseInt(content.subarray(0, pos).toString('utf8'), 10),
+        sharedKey: content.subarray(pos + 1, content.length),
+    };
+}
+
+/**
+ * Build a Assuan agent from the given socket path.
+ *
+ * @param socketPath - The file path to the GnuPG socket.
+ */
+export async function buildAgent(socketPath: string): Promise<Assuan> {
+    const tcpInfo = await detectTcpInfo(socketPath);
+    const socketOrTcp = tcpInfo === undefined ? socketPath : tcpInfo;
+    return new AssuanClient(socketOrTcp);
+}
+
 /**
  * The Assuan interface for Assuan Protocol.
  */
@@ -268,13 +313,14 @@ class AssuanClient implements Assuan {
      *
      * @remarks User should wait initialize() to complete before sending any command.
      *
-     * @param socketPath - The file path to GnuPG unix socket.
+     * @param socketOrTcp - The file path to GnuPG unix socket, or the TCP connection information.
      */
-    constructor(socketPath: string) {
+    constructor(private socketOrTcp: string | TcpInfo) {
 
-        this.#socket = net.createConnection(socketPath, () => {
-            this.#isConnected = true;
-        });
+        const setConnected = () => { this.#isConnected = true; };
+        this.#socket = typeof socketOrTcp === 'string'
+            ? net.createConnection(socketOrTcp, setConnected)
+            : net.createConnection(socketOrTcp.port, 'localhost', setConnected);
 
         this.#socket.on('data', (data: Buffer) => {
             const lines = splitLines(data);
@@ -293,8 +339,11 @@ class AssuanClient implements Assuan {
             if (!this.#isConnected) {
                 await sleep(0);
             }
-            return;
+            break;
         }
+
+        if (typeof this.socketOrTcp === 'string') { return; }
+        await this.handleSend(this.socketOrTcp.sharedKey);
     }
 
     async dispose(): Promise<void> {

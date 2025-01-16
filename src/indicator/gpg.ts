@@ -28,7 +28,7 @@ async function getSocketPath(): Promise<string> {
 async function sign(logger: Logger, socketPath: string, keygrip: string, passphrase: string, sha1Hash: string): Promise<void> {
     let response: assuan.Response;
 
-    const agent = new assuan.AssuanClient(socketPath);
+    const agent = await assuan.buildAgent(socketPath);
     logger.info("[Assuan] Initialize Assuan client");
     await agent.initialize();
     try {
