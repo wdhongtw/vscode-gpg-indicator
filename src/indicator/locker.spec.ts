@@ -28,4 +28,18 @@ describe('locker', () => {
             assert.strictEqual(counter, jobCount);
         });
     });
+
+    describe('Ticket', () => {
+        it('should provide a promise that only resolve when controller aborted', async () => {
+            const controller = new AbortController();
+            const ticket = new locker.Ticket(controller.signal);
+
+            assert.strictEqual(ticket.isExpired, false);
+
+            controller.abort();
+
+            await ticket.done(); // will not block here.
+            assert.strictEqual(ticket.isExpired, true);
+        });
+    });
 });

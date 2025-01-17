@@ -47,51 +47,27 @@ export class KeyStatusEvent {
     }
 }
 
+/** KeyStatusManager is a manager for key status synchronization. */
 export default class KeyStatusManager {
-    private updateFolderLock: Mutex;
-    private syncStatusLock: Mutex;
-    private activateFolder: string | undefined;
-    private _activateFolder: string | undefined;
-    private lastEvent: KeyStatusEvent | undefined;
-    private currentKey: GpgKeyInfo | undefined;
+    private updateFolderLock: Mutex = new Mutex();
+    private syncStatusLock: Mutex = new Mutex();
+    private activateFolder: string | undefined = undefined;
+    private _activateFolder: string | undefined = undefined;
+    private lastEvent: KeyStatusEvent | undefined = undefined;
+    private currentKey: GpgKeyInfo | undefined = undefined;
     private keyOfFolders: Map<string, GpgKeyInfo> = new Map();
-    private disposed: boolean = false;
     private updateFunctions: ((event?: KeyStatusEvent) => void)[] = [];
     private isUnlocked = false;
 
-    /**
-     * Construct the key status manager.
-     *
-     * @param logger - the output logger for debugging logs.
-     * @param syncInterval - key status sync interval in seconds.
-     */
     constructor(
         private logger: Logger,
         private git: GitAdapter,
         private gpg: GpgAdapter,
-        private syncInterval: number,
         private secretStorage: Storage,
         public enablePassphraseCache: boolean,
         private isWorkspaceTrusted: boolean,
         private defaultFolder: string,
     ) {
-        this.updateFolderLock = new Mutex();
-        this.syncStatusLock = new Mutex();
-    }
-
-    async syncLoop(): Promise<void> {
-        await process.sleep(1 * 1000);
-        while (!this.disposed) {
-            if (this.activateFolder) {
-                await this.syncStatus();
-            }
-            await process.sleep(this.syncInterval * 1000);
-        }
-        return;
-    }
-
-    updateSyncInterval(syncInterval: number): void {
-        this.syncInterval = syncInterval;
     }
 
     private show(isChanged: boolean, changedMsg: string, defaultMsg: string) {
@@ -101,6 +77,7 @@ export default class KeyStatusManager {
         );
     }
 
+    /** Trigger key status update once, coroutine-safe is ensured. */
     async syncStatus(): Promise<void> {
         await this.syncStatusLock.with(async () => {
             if (!this.activateFolder) {
@@ -212,7 +189,7 @@ export default class KeyStatusManager {
         }
     }
 
-    // Update workspace folders
+    /** Update workspace folders */
     async updateFolders(folders: string[]): Promise<void> {
         this.logger.info('Update folder information');
         this.keyOfFolders.clear();
@@ -237,7 +214,7 @@ export default class KeyStatusManager {
         });
     }
 
-    // Change current key according to activate folder
+    /** Change current key according to activate folder */
     async changeActivateFolder(folder: string): Promise<void> {
         this._activateFolder = folder;
         if (!this.isWorkspaceTrusted) {
@@ -252,6 +229,7 @@ export default class KeyStatusManager {
         await this.syncStatus();
     }
 
+    /** Recover activate folder after workspace trust granted */
     async recoverActivateFolderOnDidGrantWorkspaceTrust(): Promise<void> {
         this.isWorkspaceTrusted = true;
         if (typeof this._activateFolder !== "string") {
@@ -262,11 +240,13 @@ export default class KeyStatusManager {
         await this.changeActivateFolder(this._activateFolder);
     }
 
+    /** Register update function for key status change */
     registerUpdateFunction(update: (event?: KeyStatusEvent) => void): void {
         this.logger.info('Got one update function');
         this.updateFunctions.push(update);
     }
 
+    /** Get current key information, if any. */
     getCurrentKey(): GpgKeyInfo | undefined {
         const currentKey = this.activateFolder ? this.keyOfFolders.get(this.activateFolder) : undefined;
         if (!currentKey) {
@@ -276,7 +256,7 @@ export default class KeyStatusManager {
         return currentKey;
     }
 
-    // Lock or unlock current key
+    /** Lock or unlock current key */
     async unlockCurrentKey(passphrase: string): Promise<void> {
         if (this.activateFolder === undefined) {
             throw new Error(vscode.l10n.t(m['noActiveFolder']));
@@ -294,16 +274,18 @@ export default class KeyStatusManager {
         this.logger.info(`Try to unlock current key: ${this.currentKey.fingerprint}`);
         await this.gpg.unlockByKey(this.currentKey.keygrip, passphrase);
     }
-
-    // Stop sync key status loop
-    dispose(): void {
-        this.disposed = true;
-    }
 }
 
+/** The abstract storage for our application, focusing on string type. */
 export interface Storage {
+
+    /** Get the value for the key. */
     get(key: string): Promise<string | undefined>
+
+    /** Update or insert value for the key. */
     set(key: string, value: string): Promise<void>
+
+    /** Delete a value for some key, if any. */
     delete(key: string): Promise<void>
 }
 

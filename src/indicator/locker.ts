@@ -38,6 +38,75 @@ export class Mutex {
     }
 }
 
+/** 
+ * Ticket is a abstraction of cancellation signal into promise. 
+ * 
+ * Inspired by Context from golang, used for main loop synchronization.
+ */
+export class Ticket {
+    public isExpired = false;
+    private promise: Promise<void>;
+
+    constructor(
+        private signal: AbortSignal,
+    ) {
+        // AbortSignal inherit from EventTarget and can use 'abort' event
+        // https://nodejs.org/api/globals.html#class-abortsignal
+        // https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
+
+        this.promise = new Promise((resolve) => {
+
+            // @ts-ignore
+            this.signal.addEventListener('abort', resolve);
+        });
+
+        // @ts-ignore
+        this.signal.addEventListener('abort', () => {
+            this.isExpired = true;
+        });
+    }
+
+    /** Return the static promise for this ticket, only resolved when expired. */
+    done(): Promise<void> {
+        return this.promise;
+    }
+}
+
+/** A Daemon that run main loop periodically with expire-ticket check. */
+export class Daemon {
+    constructor(
+        public intervalSec: number
+    ) {
+    }
+
+    updateInterval(sec: number): void {
+        this.intervalSec = sec;
+    }
+
+    /** Run the given job repetitively until the ticket is expired. */
+    async run(ticket: Ticket, main: () => Promise<void>): Promise<void> {
+        while (await wait(ticket, 1000 * this.intervalSec)) {
+            await main();
+        }
+    }
+}
+
+/** Wait until ms is passed or ticket expired, return false if ticket expired */
+export async function wait(ticket: Ticket, ms: number): Promise<boolean> {
+    const segment = Math.min(ms / 10, 100);
+    const total = Math.ceil(ms / segment);
+
+    // Wrap AbortSignal into ticket promise and block on two event source.
+    // Once AbortSignal.any is available, this encapsulation is not required.
+
+    let count = 0;
+    while (!ticket.isExpired && count < total) {
+        await Promise.any([sleep(segment), ticket.done()]);
+        count += 1;
+    }
+    return !ticket.isExpired;
+}
+
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
