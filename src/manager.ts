@@ -49,12 +49,12 @@ export class KeyStatusEvent {
 
 /** KeyStatusManager is a manager for key status synchronization. */
 export default class KeyStatusManager {
-    private updateFolderLock: Mutex;
-    private syncStatusLock: Mutex;
-    private activateFolder: string | undefined;
-    private _activateFolder: string | undefined;
-    private lastEvent: KeyStatusEvent | undefined;
-    private currentKey: GpgKeyInfo | undefined;
+    private updateFolderLock: Mutex = new Mutex();
+    private syncStatusLock: Mutex = new Mutex();
+    private activateFolder: string | undefined = undefined;
+    private _activateFolder: string | undefined = undefined;
+    private lastEvent: KeyStatusEvent | undefined = undefined;
+    private currentKey: GpgKeyInfo | undefined = undefined;
     private keyOfFolders: Map<string, GpgKeyInfo> = new Map();
     private disposed: boolean = false;
     private updateFunctions: ((event?: KeyStatusEvent) => void)[] = [];
@@ -70,8 +70,6 @@ export default class KeyStatusManager {
         private isWorkspaceTrusted: boolean,
         private defaultFolder: string,
     ) {
-        this.updateFolderLock = new Mutex();
-        this.syncStatusLock = new Mutex();
     }
 
     /** Start main loop as a daemon. */
