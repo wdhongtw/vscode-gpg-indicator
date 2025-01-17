@@ -5,6 +5,7 @@ import * as util from 'util';
 
 import * as git from './indicator/git';
 import * as gpg from './indicator/gpg';
+import * as locker from './indicator/locker';
 import { Logger } from "./manager";
 import KeyStatusManager from "./manager";
 import { Storage, KeyStatusEvent } from "./manager";
@@ -97,13 +98,13 @@ export async function activate(context: vscode.ExtensionContext) {
         logger,
         new git.CliGit(),
         new gpg.CliGpg(logger),
-        syncStatusInterval,
         secretStorage,
         configuration.get<boolean>('enablePassphraseCache', false),
         vscode.workspace.isTrusted,
         os.homedir(),
     );
-    context.subscriptions.push(keyStatusManager);
+
+    const daemon = new locker.Daemon(syncStatusInterval);
 
     vscode.workspace.onDidGrantWorkspaceTrust(() => {
         keyStatusManager.recoverActivateFolderOnDidGrantWorkspaceTrust();
@@ -232,7 +233,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (event) => {
         logger.info("[Configuration] Change event detected");
         const configuration = vscode.workspace.getConfiguration('gpgIndicator');
-        keyStatusManager.updateSyncInterval(configuration.get<number>('statusRefreshInterval', 30));
+        daemon.updateInterval(configuration.get<number>('statusRefreshInterval', 30));
         logger.setLevel(configuration.get<string>('outputLogLevel', "info"));
         const newEnablePassphraseCache = configuration.get<boolean>('enablePassphraseCache', false);
         if (keyStatusManager.enablePassphraseCache && !newEnablePassphraseCache) {
@@ -280,7 +281,17 @@ export async function activate(context: vscode.ExtensionContext) {
         await keyStatusManager.changeActivateFolder(folders[0]);
     }
 
-    keyStatusManager.syncLoop();
+    const controller = new AbortController();
+    context.subscriptions.push({
+        dispose: () => { controller.abort(); },
+    }); // a un-typed Disposable object for abort controller
+
+    // All settled, now start the main loop for this extension.
+    const ticket = new locker.Ticket(controller.signal);
+    await locker.wait(ticket, 1 * 1000);
+    daemon.run(ticket, async () => {
+        await keyStatusManager.syncStatus();
+    });
 }
 
 export async function deactivate() {

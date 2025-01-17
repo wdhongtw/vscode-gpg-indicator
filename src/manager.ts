@@ -56,7 +56,6 @@ export default class KeyStatusManager {
     private lastEvent: KeyStatusEvent | undefined = undefined;
     private currentKey: GpgKeyInfo | undefined = undefined;
     private keyOfFolders: Map<string, GpgKeyInfo> = new Map();
-    private disposed: boolean = false;
     private updateFunctions: ((event?: KeyStatusEvent) => void)[] = [];
     private isUnlocked = false;
 
@@ -64,29 +63,11 @@ export default class KeyStatusManager {
         private logger: Logger,
         private git: GitAdapter,
         private gpg: GpgAdapter,
-        private syncInterval: number,
         private secretStorage: Storage,
         public enablePassphraseCache: boolean,
         private isWorkspaceTrusted: boolean,
         private defaultFolder: string,
     ) {
-    }
-
-    /** Start main loop as a daemon. */
-    async syncLoop(): Promise<void> {
-        await process.sleep(1 * 1000);
-        while (!this.disposed) {
-            if (this.activateFolder) {
-                await this.syncStatus();
-            }
-            await process.sleep(this.syncInterval * 1000);
-        }
-        return;
-    }
-
-    /** Update synchronization interval for key status. */
-    updateSyncInterval(syncInterval: number): void {
-        this.syncInterval = syncInterval;
     }
 
     private show(isChanged: boolean, changedMsg: string, defaultMsg: string) {
@@ -292,11 +273,6 @@ export default class KeyStatusManager {
 
         this.logger.info(`Try to unlock current key: ${this.currentKey.fingerprint}`);
         await this.gpg.unlockByKey(this.currentKey.keygrip, passphrase);
-    }
-
-    /** Stop sync key status loop */
-    dispose(): void {
-        this.disposed = true;
     }
 }
 
