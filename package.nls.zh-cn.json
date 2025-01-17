@@ -5,7 +5,7 @@
     "gpgIndicator.l10n.commands.listPassphraseCache": "列举存有密码的密钥",
     "gpgIndicator.l10n.configuration.statusRefreshInterval": "后台刷新间隔，以秒为单位。",
     "gpgIndicator.l10n.configuration.outputLogLevel": "扩展日志输出等级，低于该等级的日志将不会被输出。",
-    "gpgIndicator.l10n.configuration.enableSecurelyPassphraseCache": "启用密钥密码的机密存储区存储功能，[查看详情](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache)。\n\n**警告**：禁用该功能会删除所有已存储的密钥，且无法撤销。",
+    "gpgIndicator.l10n.configuration.enableSecurelyPassphraseCache": "启用密钥密码的机密存储区存储功能，[查看详情](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache)。",
     "gpgIndicator.l10n.configuration.statusStyle": "选择状态栏按钮显示的密钥信息内容。",
     "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprintWithUserId": "同时显示密钥指纹和关联用户信息，若无关联用户信息则只显示密钥指纹。\n\n例如：`0123456789ABCDEF - Example User <example@example.com>`",
     "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprint": "只显示密钥指纹。\n\n例如：`0123456789ABCDEF`",
