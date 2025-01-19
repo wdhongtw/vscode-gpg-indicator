@@ -38,6 +38,22 @@ class FakeMemento implements vscode.Memento {
 
 suite('ExtensionTestSuite', () => {
 
+    suite('Extension', () => {
+
+        test('should be able active the extension', async () => {
+            // see package.json
+            const extensionId = 'wdhongtw.gpg-indicator';
+
+            const extension = vscode.extensions.getExtension(extensionId);
+            if (!extension) {
+                assert.fail('Extension not found');
+            }
+
+            await extension.activate();
+            assert.strictEqual(extension.isActive, true);
+        });
+    });
+
     suite('PassphraseStorage', () => {
         const storage = new extension.PassphraseStorage(
             new FakeCipher(),
