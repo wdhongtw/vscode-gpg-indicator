@@ -3,13 +3,13 @@ import * as os from 'os';
 import * as crypto from 'crypto';
 import * as util from 'util';
 
-import * as git from './indicator/git';
-import * as gpg from './indicator/gpg';
-import * as locker from './indicator/locker';
-import * as core from './manager';
-import { Logger } from "./manager";
-import KeyStatusManager from "./manager";
-import { Storage, KeyStatusEvent } from "./manager";
+import * as git from './adapter/git';
+import * as gpg from './adapter/gpg';
+import * as locker from './common/locker';
+import * as core from './core';
+import { Logger } from "./core";
+import KeyStatusManager from "./core";
+import { Storage, KeyStatusEvent } from "./core";
 import { m } from "./message";
 
 type statusStyleEnum = "fingerprintWithUserId" | "fingerprint" | "userId";

@@ -1,4 +1,4 @@
-import { Mutex } from "./indicator/locker";
+import { Mutex } from "./common/locker";
 
 /**
  * Logger is a sample interface for basic logging ability.
