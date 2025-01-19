@@ -5,7 +5,7 @@
     "gpgIndicator.l10n.commands.listPassphraseCache": "List your passphrase cache",
     "gpgIndicator.l10n.configuration.statusRefreshInterval": "Background refresh interval (in seconds) for key status.",
     "gpgIndicator.l10n.configuration.outputLogLevel": "Log level for extension log output.",
-    "gpgIndicator.l10n.configuration.enableSecurelyPassphraseCache": "Specifies whether to use the `SecretStorage` of VSCode to store your passphrase or not. [Read more](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache).\n\n**WARNING**: Turn off this option will clear all your passphrase cache, and cannot be reverted.",
+    "gpgIndicator.l10n.configuration.enableSecurelyPassphraseCache": "Specifies whether to use the `SecretStorage` of VSCode to store your passphrase or not. [Read more](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache).",
     "gpgIndicator.l10n.configuration.statusStyle": "Specifies what to show about the current key in the status bar element",
     "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprintWithUserId": "Show both fingerprint and user id (if any), if no user id found, show fingerprint only.\n\nExample: `0123456789ABCDEF - Example User <example@example.com>`",
     "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprint": "Show fingerprint only.\n\nExample: `0123456789ABCDEF`",

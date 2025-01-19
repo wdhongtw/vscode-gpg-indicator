@@ -1,6 +1,6 @@
 import * as util from 'util';
 
-import * as core from '../manager';
+import * as core from '../core';
 
 const exec = util.promisify(require('child_process').exec);
 // exec with default utf-8 encoding always return stdout as string

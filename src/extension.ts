@@ -3,12 +3,13 @@ import * as os from 'os';
 import * as crypto from 'crypto';
 import * as util from 'util';
 
-import * as git from './indicator/git';
-import * as gpg from './indicator/gpg';
-import * as locker from './indicator/locker';
-import { Logger } from "./manager";
-import KeyStatusManager from "./manager";
-import { Storage, KeyStatusEvent } from "./manager";
+import * as git from './adapter/git';
+import * as gpg from './adapter/gpg';
+import * as locker from './common/locker';
+import * as core from './core';
+import { Logger } from "./core";
+import KeyStatusManager from "./core";
+import { Storage, KeyStatusEvent } from "./core";
 import { m } from "./message";
 
 type statusStyleEnum = "fingerprintWithUserId" | "fingerprint" | "userId";
@@ -36,7 +37,7 @@ async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManage
         return false;
     }
     const items: vscode.QuickPickItem[] = [];
-    const keyInfos = await gpg.getKeyInfos();
+    const keyInfos = await keyStatusManager.getKeyInfos();
     const keyToUser = keyInfos.map(({ userId, fingerprint }): [string, string?] => [fingerprint, userId]);
     const withUsers = keyToUser.filter((pair): pair is [string, string] => pair[1] !== undefined);
     const keyList = new Map<string, string>(withUsers);
@@ -77,6 +78,27 @@ async function generateKeyList(secretStorage: PassphraseStorage, keyStatusManage
     return items;
 }
 
+/** MessageEventReceiver transform event into VSCode information message. */
+class MessageEventReceiver implements core.EventReceiver {
+
+    async onEvent(event: core.Event): Promise<void> {
+        const message: string = (() => {
+            switch (event) {
+                case core.Event.StoredPassphraseUnlockSucceed:
+                    return vscode.l10n.t(m['keyAutomaticallyUnlocked']);
+                case core.Event.StoredPassphraseUnlockFailed:
+                    return vscode.l10n.t(m['keyAutomaticallyUnlockFailed']);
+                case core.Event.StoredPassphraseBeDeleted:
+                    return vscode.l10n.t(m['passphraseDeleted']);
+                case core.Event.LockedStateEntered:
+                    return vscode.l10n.t(m['keyRelocked']);
+            }
+        })();
+
+        await vscode.window.showInformationMessage(message);
+    }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     const masterKey = await initializeMasterKey(context.secrets);
 
@@ -99,6 +121,7 @@ export async function activate(context: vscode.ExtensionContext) {
         new git.CliGit(),
         new gpg.CliGpg(logger),
         secretStorage,
+        new MessageEventReceiver(),
         configuration.get<boolean>('enablePassphraseCache', false),
         vscode.workspace.isTrusted,
         os.homedir(),
@@ -118,9 +141,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
         const passphrase = await vscode.window.showInputBox({
-            prompt: keyStatusManager.enablePassphraseCache
-                ? vscode.l10n.t(m['passphraseInputPromptTitleWhenSecurelyPassphraseCacheEnabled'])
-                : vscode.l10n.t(m['passphraseInputPromptTitle']),
+            prompt: vscode.l10n.t(m['passphraseInputPromptTitle']),
             password: true,
             placeHolder: currentKey.userId
                 ? vscode.l10n.t(m['keyDescriptionWithUserId'], currentKey.userId)
@@ -138,11 +159,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
         if (keyStatusManager.enablePassphraseCache) {
             await secretStorage.set(currentKey.fingerprint, passphrase);
-            vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlockedWithCachedPassphrase']));
-        } else {
-            vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlocked']));
-            await introduceCacheFeature(context);
+            vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseStored']));
         }
+        vscode.window.showInformationMessage(vscode.l10n.t(m['keyUnlocked']));
+        await introduceCacheFeature(context);
     }));
     keyStatusItem.tooltip = 'Unlock this key';
     keyStatusItem.command = commandId;
@@ -186,14 +206,9 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(vscode.l10n.t(m['noCachedPassphrase']));
             return;
         }
-        if ((await vscode.window.showInformationMessage<vscode.MessageItem>(
-            vscode.l10n.t(m["passphraseClearanceConfirm"]),
-            { modal: true },
-            { title: actions.YES },
-            { title: actions.NO, isCloseAffordance: true },
-        ))?.title !== actions.YES) {
-            return;
-        }
+
+        // We do not confirm again whether user really want to delete, just trust our user.
+
         await Promise.all([...secretStorage].map((key) => secretStorage.delete(key)));
         vscode.window.showInformationMessage(vscode.l10n.t(m['passphraseCleared']));
     }));
@@ -299,6 +314,9 @@ export async function deactivate() {
 
 async function introduceCacheFeature(context: vscode.ExtensionContext) {
     const configuration = vscode.workspace.getConfiguration('gpgIndicator');
+    if (configuration.get<boolean>('enablePassphraseCache', false)) {
+        return;
+    }
 
     if (await context.globalState.get("user:is-cache-notice-read")) {
         return;
@@ -315,7 +333,7 @@ async function introduceCacheFeature(context: vscode.ExtensionContext) {
     }
     await context.globalState.update("user:is-cache-notice-read", true);
     if (result === actions.YES) {
-        configuration.update("enablePassphraseCache", true, true);
+        await configuration.update("enablePassphraseCache", true, true);
     }
 
     let postMessage: string;
