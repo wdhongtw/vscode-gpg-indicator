@@ -262,6 +262,11 @@ export default class KeyStatusManager {
         this.logger.info(`Try to unlock current key: ${this.currentKey.fingerprint}`);
         await this.gpg.unlockByKey(this.currentKey.keygrip, passphrase);
     }
+
+    /** Fetch all available GPG key information in user global scope. */
+    async getKeyInfos(): Promise<GpgKeyInfo[]> {
+        return await this.gpg.getKeyInfos();
+    }
 }
 
 /** Types for events from key manager. */
