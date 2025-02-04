@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as assert from 'assert';
 
+import * as core from './core';
+
 import * as extension from './extension';
-import * as core from './manager';
 
 class FakeCipher implements extension.Cipher {
     constructor() { }
