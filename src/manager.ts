@@ -1,4 +1,3 @@
-import * as process from './indicator/process';
 import { Mutex } from "./indicator/locker";
 
 /**
