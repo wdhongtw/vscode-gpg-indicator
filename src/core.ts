@@ -1,8 +1,4 @@
-import * as vscode from 'vscode';
-
-import * as process from './indicator/process';
-import { Mutex } from "./indicator/locker";
-import { m } from "./message";
+import { Mutex } from "./common/locker";
 
 /**
  * Logger is a sample interface for basic logging ability.
@@ -64,17 +60,11 @@ export default class KeyStatusManager {
         private git: GitAdapter,
         private gpg: GpgAdapter,
         private secretStorage: Storage,
+        private receiver: EventReceiver,
         public enablePassphraseCache: boolean,
         private isWorkspaceTrusted: boolean,
         private defaultFolder: string,
     ) {
-    }
-
-    private show(isChanged: boolean, changedMsg: string, defaultMsg: string) {
-        vscode.window.showInformationMessage(isChanged
-            ? vscode.l10n.t(changedMsg)
-            : vscode.l10n.t(defaultMsg),
-        );
     }
 
     /** Trigger key status update once, coroutine-safe is ensured. */
@@ -144,22 +134,15 @@ export default class KeyStatusManager {
 
         try {
             await this.unlockCurrentKey(passphrase);
-            if (isUnlockedPrev) {
-                this.show(isChanged, m['keyChangedAndAutomaticallyUnlocked'], m['keyRelockedAndAutomaticallyUnlocked']);
-            } else {
-                this.show(isChanged, m['keyChangedAndAutomaticallyUnlocked'], m['keyAutomaticallyUnlocked']);
-            }
+            await this.receiver.onEvent(Event.StoredPassphraseUnlockSucceed);
         } catch (err) {
             if (!(err instanceof Error)) {
                 throw err;
             }
             this.logger.error(`Cannot unlock the key with the cached passphrase: ${err.message}`);
             await this.secretStorage.delete(keyInfo.fingerprint);
-            if (isUnlockedPrev) {
-                this.show(isChanged, m['keyChangedButAutomaticallyUnlockFailed'], m['keyRelockedButAutomaticallyUnlockFailed']);
-            } else {
-                this.show(isChanged, m['keyChangedButAutomaticallyUnlockFailed'], m['keyAutomaticallyUnlockFailed']);
-            }
+            await this.receiver.onEvent(Event.StoredPassphraseBeDeleted);
+            await this.receiver.onEvent(Event.StoredPassphraseUnlockFailed);
         }
 
         return await this.gpg.isKeyUnlocked(keyInfo.keygrip);
@@ -173,8 +156,11 @@ export default class KeyStatusManager {
      */
     private async showInfoOnly(isChanged: boolean, isUnlockedPrev: boolean, keyInfo: GpgKeyInfo): Promise<boolean> {
         const isUnlocked = await this.gpg.isKeyUnlocked(keyInfo.keygrip);
-        if (isUnlockedPrev && !isUnlocked) {
-            this.show(isChanged, m['keyChanged'], m['keyRelocked']);
+
+        // We do not notify key changed event, since that it could be noisy potentially.
+        // For the same key, we only notify the change from "unlocked" to "locked".
+        if (!isChanged && isUnlockedPrev && !isUnlocked) {
+            await this.receiver.onEvent(Event.LockedStateEntered);
         }
 
         return isUnlocked;
@@ -259,11 +245,13 @@ export default class KeyStatusManager {
     /** Lock or unlock current key */
     async unlockCurrentKey(passphrase: string): Promise<void> {
         if (this.activateFolder === undefined) {
-            throw new Error(vscode.l10n.t(m['noActiveFolder']));
+            this.logger.error("No activate folder");
+            return;
         }
 
         if (this.currentKey === undefined) {
-            throw new Error(vscode.l10n.t(m['noKeyForCurrentFolder']));
+            this.logger.error("No current key");
+            return;
         }
 
         if (await this.gpg.isKeyUnlocked(this.currentKey.keygrip)) {
@@ -274,6 +262,34 @@ export default class KeyStatusManager {
         this.logger.info(`Try to unlock current key: ${this.currentKey.fingerprint}`);
         await this.gpg.unlockByKey(this.currentKey.keygrip, passphrase);
     }
+
+    /** Fetch all available GPG key information in user global scope. */
+    async getKeyInfos(): Promise<GpgKeyInfo[]> {
+        return await this.gpg.getKeyInfos();
+    }
+}
+
+/** Types for events from key manager. */
+export enum Event {
+
+    /** Use stored passphrase to unlock and succeed. */
+    StoredPassphraseUnlockSucceed,
+
+    /** Use stored passphrase to unlock buf failed. */
+    StoredPassphraseUnlockFailed,
+
+    /** Previously stored passphrase be deleted. */
+    StoredPassphraseBeDeleted,
+
+    /** Some key changed into locked state. */
+    LockedStateEntered,
+};
+
+/** Receiver interface for events from key manager. */
+export interface EventReceiver {
+
+    /** Handle given event. */
+    onEvent(event: Event): Promise<void>;
 }
 
 /** The abstract storage for our application, focusing on string type. */

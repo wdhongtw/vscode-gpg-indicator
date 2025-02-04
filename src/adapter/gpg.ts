@@ -1,8 +1,8 @@
-import * as process from './process';
+import * as process from '../common/process';
 import * as assuan from './assuan';
 
-import type { Logger } from '../manager';
-import * as core from '../manager';
+import type { Logger } from '../core';
+import * as core from '../core';
 
 /**
  * Get the path of socket file for communication with GPG agent.
