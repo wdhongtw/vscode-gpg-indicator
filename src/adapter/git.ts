@@ -34,7 +34,8 @@ export async function getSigningKey(project: string): Promise<string> {
         let output: string = stdout;
         output = output.trimEnd();
 
-        // Some Git/GPG context allow prepending '0x' to the key and appending exclamation mark to specify exact key match
+        // Some Git/GPG contexts allow prepending the key with '0x' and appending an exclamation mark to specify exact key match.
+        // see: https://www.gnupg.org/documentation/manuals/gnupg/Specify-a-User-ID.html
         output = output.replace('0x', '').replace('!', '');
         return output;
     } catch (error) {
