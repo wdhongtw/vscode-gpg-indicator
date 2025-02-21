@@ -1,0 +1,14 @@
+{
+    "gpgIndicator.l10n.commands.unlockCurrentKey": "現在の鍵を解除",
+    "gpgIndicator.l10n.commands.deletePassphraseCache": "選択したパスフレーズのキャッシュを削除",
+    "gpgIndicator.l10n.commands.clearPassphraseCache": "すべてのパスフレーズのキャッシュをクリア",
+    "gpgIndicator.l10n.commands.listPassphraseCache": "パスフレーズのキャッシュを一覧表示",
+    "gpgIndicator.l10n.configuration.statusRefreshInterval": "鍵の状態をバックグラウンドで更新する間隔（秒）",
+    "gpgIndicator.l10n.configuration.outputLogLevel": "拡張機能のログ出力レベル",
+    "gpgIndicator.l10n.configuration.enableSecurelyPassphraseCache": "VSCodeの`SecretStorage`を使用してパスフレーズを保存するかどうかを指定します。[詳細](https://github.com/wdhongtw/vscode-gpg-indicator#passphrase-cache)",
+    "gpgIndicator.l10n.configuration.statusStyle": "ステータスバーに表示する現在の鍵の情報を指定",
+    "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprintWithUserId": "フィンガープリントとユーザーID（存在する場合）の両方を表示します。ユーザーIDが存在しない場合は、フィンガープリントのみを表示します。\n\n例：`0123456789ABCDEF - Example User <example@example.com>`",
+    "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.fingerprint": "フィンガープリントのみを表示します。\n\n例：`0123456789ABCDEF`",
+    "gpgIndicator.l10n.configuration.statusStyle.enumDescriptions.userId": "ユーザーIDを表示します。ユーザーIDが存在しない場合は、代わりにフィンガープリントを表示します。\n\n例：`Example User <example@example.com>`",
+    "gpgIndicator.l10n.capabilities.untrustedWorkspaces": "信頼されていないワークスペースで制限モードを有効にしている場合、拡張機能は現在のフォルダーからのGit設定を読み込みません。"
+}
