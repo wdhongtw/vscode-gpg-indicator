@@ -22,7 +22,7 @@
     "Key unlocked automatically using the previous-used stored passphrase.": "以前に使用したパスフレーズで鍵が自動的に解除されました。",
     "The previous-used stored passphrase is unable to unlock current key.": "以前に使用したパスフレーズで現在の鍵を解除できませんでした。",
     "Key changed.": "鍵が変更されました。",
-    "Key re-locked.": "鍵が再ロックされました。",
+    "Key re-locked.": "鍵が再びロックされました。",
     "No active folder": "アクティブなフォルダーがありません。",
     "No key for current folder": "現在のフォルダーに関連付けられた鍵がありません。",
     "GPG Indicator come with new passphrase cache feature, would you like to enable this feature?": "GPG Indicatorに新しいパスフレーズキャッシュ機能が追加されました。この機能を有効にしますか？",
