@@ -83,6 +83,8 @@ and the key ID is the hex string after the algorithm identifier.
 - `altjx`
 - `AnnAngela`
 - `mptr`
+- `Fledra`
+- `MocA-Love`
 
 ## Release Notes
 
