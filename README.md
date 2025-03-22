@@ -88,6 +88,10 @@ and the key ID is the hex string after the algorithm identifier.
 
 ## Release Notes
 
+### 0.7.4
+
+Japanese support, enhancements and library refactoring.
+
 ### 0.7.3
 
 Experimental support for Windows and minor bug fixes.

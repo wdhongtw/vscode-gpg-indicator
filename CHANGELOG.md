@@ -4,6 +4,14 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.7.4] - 2025-03-22
+### Added
+- Support Japanese localization
+### Changed
+- Several simplification around user messages
+### Fixed
+- More robust support for key ID format
+
 ## [0.7.3] - 2025-01-16
 ### Added
 - Add experimental support for TCP-based agent connection
