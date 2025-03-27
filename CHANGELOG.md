@@ -4,6 +4,11 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.7.5] - 2025-03-27
+### Fixed
+- Fix incorrect blocking wait behavior on output-only message box
+- Remove incorrect message box when unlock operation fail
+
 ## [0.7.4] - 2025-03-22
 ### Added
 - Support Japanese localization
