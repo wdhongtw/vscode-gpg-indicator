@@ -157,6 +157,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (err instanceof Error) {
                 vscode.window.showErrorMessage(vscode.l10n.t(m['keyUnlockFailedWithId'], err.message));
             }
+            return;
         }
 
         if (keyStatusManager.enablePassphraseCache) {
