@@ -95,7 +95,9 @@ class MessageEventReceiver implements core.EventReceiver {
             }
         })();
 
-        await vscode.window.showInformationMessage(message);
+        vscode.window.showInformationMessage(message);
+        // Notice that we can not await on result promise, since that
+        // extension may hang if the message is never dismissed.
     }
 }
 
