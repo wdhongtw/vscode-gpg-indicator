@@ -114,7 +114,12 @@ export async function activate(context: vscode.ExtensionContext) {
     logger.info('Active GPG Indicator extension ...');
     logger.info(`Setting: sync status interval: ${syncStatusInterval}`);
 
-    const keyStatusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    const keyStatusItem = vscode.window.createStatusBarItem(
+        'gpgIndicator.keyStatus',
+        vscode.StatusBarAlignment.Left,
+        100,
+    );
+    keyStatusItem.name = 'GPG Indicator';
     context.subscriptions.push(keyStatusItem);
 
     logger.info('Create key status manager');
