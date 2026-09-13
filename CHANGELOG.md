@@ -4,6 +4,13 @@ All notable changes to the "gpg-indicator" extension will be documented in this 
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.7.6] - 2026-09-13
+### Added
+- Support Remote-SSH environment better
+### Changed
+- Refresh CI runtime to current Node.js LTS and GitHub Actions Node runtime
+- Update dependencies and contributor list
+
 ## [0.7.5] - 2025-03-27
 ### Fixed
 - Fix incorrect blocking wait behavior on output-only message box
