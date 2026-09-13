@@ -85,6 +85,7 @@ and the key ID is the hex string after the algorithm identifier.
 - `mptr`
 - `Fledra`
 - `MocA-Love`
+- `alexyarmoshko`
 
 ## Release Notes
 
